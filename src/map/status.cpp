@@ -35,7 +35,7 @@
 #include "pc_groups.hpp"
 #include "pet.hpp"
 #include "script.hpp"
-
+#include "mod_soullink.hpp"
 using namespace rathena;
 
 // Regen related flags.
@@ -4056,7 +4056,14 @@ int32 status_calc_pc_sub(map_session_data* sd, uint8 opt)
 		}
 		current_equip_opt_index = -1;
 	}
-
+	if (sd && sc->count && sc->getSCE(SC_SPIRIT)) {
+			auto spirit = sc->getSCE(SC_SPIRIT);
+			if (spirit != nullptr){
+				std::shared_ptr<mods::soul_link_data> sld = mods::soul_link_db.find(spirit->val2);
+				if(sld != nullptr && sld->script != nullptr)
+					run_script(sld->script, 0, sd->bl.id, 0);
+			}
+	}
 	if (!sc->empty()){
 		if( status_change_entry* sce = sc->getSCE(SC_ITEMSCRIPT); sce != nullptr ){
 			std::shared_ptr<item_data> data = item_db.find(sc->getSCE(SC_ITEMSCRIPT)->val1);
@@ -10101,6 +10108,12 @@ int32 status_change_start(struct block_list* src, struct block_list* bl,enum sc_
 						mask = sd->class_;
 						target_class = sd->class_;
 						break;
+						case SL_NINJA:
+						target_class = MAPID_NINJA;
+						break;
+					case SL_GUNNER:
+						target_class = MAPID_GUNSLINGER;
+						break;
 					default:
 						ShowError( "Unknown skill id %d for SC_SPIRIT.\n", val2 );
 						return 0;
@@ -15716,6 +15729,9 @@ void StatusDatabase::loadingFinished(){
 }
 
 StatusDatabase status_db;
+namespace mods {
+SoulLinkDabatase soul_link_db;
+}
 
 /**
  * Sets defaults in tables and starts read db functions
@@ -15763,11 +15779,13 @@ void status_readdb( bool reload ){
 		refine_db.reload();
 		status_db.reload();
 		enchantgrade_db.reload();
+		mods::soul_link_db.reload();
 	}else{
 		size_fix_db.load();
 		refine_db.load();
 		status_db.load();
 		enchantgrade_db.load();
+		mods::soul_link_db.load();
 	}
 	elemental_attribute_db.load();
 }
@@ -15796,4 +15814,5 @@ void do_final_status(void) {
 	refine_db.clear();
 	status_db.clear();
 	elemental_attribute_db.clear();
+	mods::soul_link_db.clear();
 }
