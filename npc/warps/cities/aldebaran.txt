@@ -53,4 +53,4 @@ aldeba_in,149,123,0	warp	aldeb_sign1-2	3,2,aldebaran,223,56
 
 
 //Turbo Track Room
-turbo_room,100,62,0	warp	exit_turbo	1,1,alde_gld,183,198
+//turbo_room,100,62,0	warp	exit_turbo	1,1,alde_gld,183,198

@@ -4,10 +4,10 @@ Header:
 
 Body:
   - Name: Mineralogist
-    Map: quiz_02
-    X: 317
-    Y: 265
-    Direction: SouthWest
+    Map: turbo_room
+    X: 96
+    Y: 118
+    Direction: SouthEast
     Sprite: 4_M_JOB_BLACKSMITH
     Items:
       - Index: 0
@@ -42,9 +42,9 @@ Body:
 
 
   - Name: Herbalist
-    Map: quiz_02
-    X: 320
-    Y: 265
+    Map: turbo_room
+    X: 103
+    Y: 118
     Direction: SouthWest
     Sprite: 2_M_PHARMACIST
     Items:

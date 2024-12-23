@@ -33,7 +33,7 @@ class status_change;
 #ifdef RENEWAL
 #	define MAX_REFINE 20
 #else
-#	define MAX_REFINE 10
+#	define MAX_REFINE 20
 #endif
 
 /// Refine type
