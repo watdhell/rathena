@@ -1,543 +1,482 @@
-//===== rAthena Script =======================================
-//= Job Master
-//===== Description: =========================================
-//= A fully functional job changer.
-//===== Additional Comments: =================================
-//= 1.0 Initial script. [Euphy]
-//= 1.1 Fixed reset on Baby job change.
-//= 1.2 Added Expanded Super Novice support and initial Kagerou/Oboro support.
-//= 1.3 Kagerou/Oboro added.
-//= 1.4 Rebellion added.
-//= 1.5 Added option to disable RebirthClass. [mazvi]
-//= 1.6 Added option to get job related equipment on change. [Braniff]
-//= 1.7 Readability changes. Also added BabyExpanded and BabySummoner classes. [Jey]
-//= 1.8 Added option to disable Baby Novice Only but Baby Class can be Enabled [mazvi]
-//= 1.9 Migrate/Integrate to Global Functions Platinum Skills. [mazvi]
-//= 2.0 Added 4th class [Lemongrass]
-//============================================================
+//==============================================================================//
+//= Script Release : Job Changer + Max Leveler  [ Version 1.6 ]
+//==================================By==========================================//
+//= ManiacSociety
+//==============================================================================//
+//= Idea Came From : ManiacSociety
+//= Helper : Emistry & Kenpachi
+//==============================================================================//
+//= D E S C R I P T I O N S
+//==============================================================================//
+// -- 1. Character can choose a Job which he like to be.
+// -- 2. This NPC only have 1 Time Usage.
+//         If it is set to Account Based then that account can use 1 times.
+//         If it is set to Character Based then all new character can use 1 times.
+// -- 3. Complete skills / Skill Points will be given if it is set to be.
+// -- 4. Base Level and Job Level will be given upon Job Change.
+// -- 5. Allow players to click an items to call out the NPC.
+//==============================================================================//
+//= V E R S I O N S
+//==============================================================================//
+// -- [ 1.6 ] : Added Item Script which allow the Scripts work as a "Tickets".
+// -- [ 1.5 ] : Added Configuration for Account Based / Character Based Settings
+// -- [ 1.4 ] : Added Baby Classes + 3rd Job Classes.                            
+// -- [ 1.3 ] : Added Configuration Option , 4 Announce Option , Informations.            
+// -- [ 1.2 ] : Simplified Scripts + Shorten the Scripts.                            
+// -- [ 1.1 ] : Added New Job Change Option.                                    
+// -- [ 1.0 ] : Simple Login Auto Max Level + Job Changer.                        
+//==============================================================================//
+//= R U L E S
+//==============================================================================//
+// -- 1. Do not use for exchanging purpose.                                        
+// -- 2. Do not claim it as yours.                                                
+// -- 3. Do not change or remove the credits.
+// -- 4. Do not sell the script in order to get paid.
+// -- 5. Do not re-sharing upon modified without permission.
+//==============================================================================//
 
-prontera,153,193,6	script	Job Master	123,{
-function Get_Job_Equip;
-// Checks if the Player has the required level.
-// closes if not, returns if yes
-function	Require_Level	{
-	if (BaseLevel < getarg(0) || JobLevel < getarg(1)) {
-		.@blvl = getarg(0) - BaseLevel;
-		.@jlvl = getarg(1) - JobLevel;
-		mes "Level requirement:";
-		mes ((getarg(0)>1)? 
-			"^bb0000"+getarg(0)+"^000000 (^bb0000Base^000000) / ":"")+"^00bb00"+
-			getarg(1)+"^000000 (^00bb00Job^000000)";
-		mes "You need " +
-			((.@blvl > 0) ? "^bb0000"+.@blvl+"^000000 more base levels " + 
-				((.@jlvl > 0) ? "and " : "") : "") +
-			((.@jlvl > 0) ? "^00bb00"+.@jlvl+"^000000 more job levels " : "") +
-			"to continue.";
-		close;
-	}
-	return;
-}
-
-// Checks if the given eac is a baby class
-function Is_Baby	{
-	return ((getarg(0, eaclass())&EAJL_BABY)>0);
-}
-
-// Checks if the player can change to fourth class.
-// Note: This does not include the level checks.
-function	Can_Change_Fourth	{
-	// To change to fourth class you need to be:
-	// * Transcendent Third Class
-	if( !.FourthClass )
-		return false; // Fourth job change disabled
-	if( (eaclass()&(EAJL_THIRD|EAJL_UPPER)) != (EAJL_THIRD|EAJL_UPPER) )
-		return false; // Not Transcendent Third Class
-	if( eaclass()&EAJL_FOURTH )
-		return false; // Already Fourth Class
-	if( roclass(eaclass()|EAJL_FOURTH) < 0 )
-		return false; // Job has no Fourth Class
-	return true;
-}
-
-// Checks if the player can change to third class.
-// Note: This does not include the level checks.
-function	Can_Change_Third	{
-	// To change to third class you either need to be:
-	// * Second Class
-	// * Transcendent Second Class
-	// * Baby Second Class
-	if( !.ThirdClass )
-		return false; // Third job change disabled
-	if( !(eaclass()&EAJL_2) )
-		return false; // Not second Class
-	if( eaclass()&EAJL_THIRD )
-		return false; // Already Third Class
-	if( roclass(eaclass()|EAJL_THIRD) < 0 )
-		return false; // Job has no third Class
-	if( (eaclass()&EAJ_UPPERMASK) == EAJ_SUPER_NOVICE )
-		return false; // Exp. Super Novice equals 3rd Cls, but has it's own case
-	if( Is_Baby() && (!.BabyClass || !.BabyThird) )
-		return false; // No Baby (Third) change allowed
-	return true;
-}
-
-function	Can_Rebirth	{
-	// To rebirth, you need to be:
-	// * Second Class
-	if( !.RebirthClass )
-		return false; // Rebirth disabled
-	if( !(eaclass()&EAJL_2) )
-		return false; // Not second Class
-	if( eaclass()&(EAJL_UPPER|EAJL_THIRD) )
-		return false; // Already Rebirthed/ Third Class
-	if( roclass(eaclass()|EAJL_UPPER) < 0 )
-		return false; // Job has no transcended class
-	if( Is_Baby() && !.BabyClass )
-		return false; // No Baby changes allowed
-	return true;
-}
-
-// Checks if the given eac is a first class
-function	Is_First_Cls	{
-	return (getarg(0) <= EAJ_TAEKWON);
-}
-
-function	Check_Riding	{
-	// Note: Why we should always check for Riding:
-	// Mounts are considered as another class, which
-	// would make this NPC bigger just to handle with
-	// those special cases.
-	if (checkfalcon() || checkcart() || checkriding() || ismounting()) {
-		mes "Please remove your " +
-			((checkfalcon()) ? "falcon" : "") +
-			((checkcart()) ? "cart" : "") +
-			((checkriding()) ? "Peco" : "") +
-			((ismounting()) ? "mount" : "") +
-			" before proceeding.";
-		close;
-	}
-	return;
-}
-function	Check_SkillPoints	{
-	if (.SkillPointCheck && SkillPoint) {
-		mes "Please use all your skill points before proceeding.";
-		close;
-	}
-	return;
-}
-
-// addJobOptions is essentially the same like
-// setarray .@array[getarraysize(.@array)],opt1,opt2,...;
-// It's just easier to read, since we're using it very often
-function	Job_Options	{
-	.@argcount = getargcount();
-	.@arr_size = getarraysize(getarg(0));
-	for( .@i = 1; .@i < .@argcount; .@i++) {
-		setarray getelementofarray(getarg(0), .@arr_size++),getarg(.@i);
-	}
-}
-
-// Begin of the NPC
-	mes .NPCName$;
-	Check_Riding();
-	Check_SkillPoints();
-
-	// initialisation
-	.@eac = eaclass();
-	.@fourth_possible = Can_Change_Fourth();
-	.@third_possible = Can_Change_Third();
-	.@rebirth_possible = Can_Rebirth();
-	.@first_eac = .@eac&EAJ_BASEMASK;
-	.@second_eac = .@eac&EAJ_UPPERMASK;
-	// Note: These are already set in pc.cpp
-	// BaseClass = roclass(.@eac&EAJ_BASEMASK) which is the players First Class
-	// BaseJob = roclass(.@eac&EAJ_UPPERMASK) which is the players Second Class
-	//dispbottom "Debug: eac ("+.@eac+"), third ("+.@third_possible+"), rebirth("+.@rebirth_possible+"), BaseClass ("+BaseClass+"), BaseJob ("+BaseJob+")";
-		
-	// From here on the jobmaster checks the current class
-	// and fills the array `.@job_opt` with possible
-	// job options for the player.
-	
-	if( .@rebirth_possible ) {
-		// Rebirth option (displayed on the top of the menu)
-		Require_Level(.Req_Rebirth[0], .Req_Rebirth[1]);
-		Job_Options(.@job_opt, Job_Novice_High);
-	}
-	if( .@third_possible ) {
-		// Third Job change (displayed below rebirth)
-		Require_Level(.Req_Third[0], .Req_Third[1]);
-		Job_Options(.@job_opt, roclass(.@eac|EAJL_THIRD));
-	}
-	if( .@fourth_possible ) {
-		// Fourth Job change (displayed below rebirth)
-		Require_Level(.Req_Fourth[0], .Req_Fourth[1]);
-		Job_Options(.@job_opt, roclass(.@eac|EAJL_FOURTH));
-	}
-	 
-	if (.SecondExpanded && 
-	   (.@eac&EAJ_UPPERMASK) == EAJ_SUPER_NOVICE && // is Super Novice
-	   !(eaclass()&EAJL_THIRD) ) {				 	// not already Expanded SN
-		// (Baby) Super Novice to Expanded (Baby) Super Novice
-	   	if( !Is_Baby(.@eac) || (.BabyClass && .BabyExpanded) ) {
-			// .BabyClass & .BabyExpanded must be enabled if the is a baby
-			Require_Level(.Req_Exp_SNOVI[0], .Req_Exp_SNOVI[1]);
-			Job_Options(.@job_opt,roclass(.@eac|EAJL_THIRD)); // Expanded SN is "third" cls
-		}
-	}
-
-	// babies don't get to become 4th jobs
-	if (.FourthExpanded && .@eac == EAJ_REBELLION) {
-		Require_Level(.Req_Fourth[0], .Req_Fourth[1]);
-		Job_Options(.@job_opt, roclass(EAJ_NIGHT_WATCH));
-	}
-
-	if (.FourthExpanded && .@eac == EAJ_KAGEROUOBORO) {
-		Require_Level(.Req_Fourth[0], .Req_Fourth[1]);
-		Job_Options(.@job_opt, roclass(EAJ_SHINKIRO_SHIRANUI));
-	}
-
-	if (.FourthExpanded && .@eac == EAJ_SUPER_NOVICE_E) {
-		Require_Level(.Req_Fourth[0], .Req_Fourth[1]);
-		Job_Options(.@job_opt, roclass(EAJ_HYPER_NOVICE));
-	}
-	
-	if (.FourthExpanded && .@eac == EAJ_SUMMONER) {
-		Require_Level(.Req_SHandler[0], .Req_SHandler[1]);
-		Job_Options(.@job_opt, roclass(EAJ_SPIRIT_HANDLER));
-	}
-
-	if (.SecondExpanded && 
-		((.@eac&(~EAJL_BABY)) == EAJ_NINJA || 		// is (Baby) Ninja
-		(.@eac&(~EAJL_BABY)) == EAJ_GUNSLINGER)) {	// is (Baby) Gunslinger
-		// (Baby) Ninja to (Baby) Kagerou / Oboro
-		// (Baby) Gunslinger to (Baby) Rebellion
-		if( !Is_Baby(.@eac) || (.BabyClass && .BabyExpanded) ) {
-			// .BabyClass & .BabyExpanded must be enabled if the is a baby
-			Require_Level(.Req_Exp_NJ_GS[0], .Req_Exp_NJ_GS[1]);
-			// Kagerou, Oboro, Rebellion are considered as a 2-1 class
-			Job_Options(.@job_opt, roclass(.@eac|EAJL_2_1));
-		}
-	}
-	
-	// Player is Job_Novice, Job_Novice_High or Job_Baby
-	if (.@first_eac == EAJ_NOVICE && .@second_eac != EAJ_SUPER_NOVICE) {
-		// MAPID_NOVICE, MAPID_SUPER_NOVICE, MAPID_NOVICE_HIGH, MAPID_BABY
-		Require_Level(.Req_First[0], .Req_First[1]);
-		switch(Class) {
-			case Job_Novice:
-				// First job change
-				Job_Options(.@job_opt,Job_Swordman,
-					Job_Mage, Job_Archer, Job_Acolyte, Job_Merchant, Job_Thief,
-					Job_Super_Novice, Job_Taekwon, Job_Gunslinger, Job_Ninja);
-				if( .BabyNovice )
-					Job_Options(.@job_opt, Job_Baby);
-				break;
-			case Job_Novice_High:
-				// Job change after rebirth
-				if( .LastJob && lastJob )
-					Job_Options(.@job_opt,
-						roclass((eaclass(lastJob)&EAJ_BASEMASK)|EAJL_UPPER));
-				else
-					Job_Options(.@job_opt, 
-						Job_Swordman_High, Job_Mage_High, Job_Archer_High,
-						Job_Acolyte_High, Job_Merchant_High, Job_Thief_High);
-				break;
-			case Job_Baby:
-				if( !.BabyClass )
-					break;
-				// First job change as a baby
-				Job_Options(.@job_opt, Job_Baby_Swordman, Job_Baby_Mage,
-					Job_Baby_Archer,Job_Baby_Acolyte, Job_Baby_Merchant,
-					Job_Baby_Thief);
-				if( .BabyExpanded )
-					Job_Options(.@job_opt, Job_Super_Baby, Job_Baby_Taekwon,
-						Job_Baby_Gunslinger, Job_Baby_Ninja);
-				if( .BabySummoner )
-					Job_Options(.@job_opt, Job_Baby_Summoner);
-				break;
-			default:
-				mes "An error has occurred.";
-				close;
-		}
-	} else if( Is_First_Cls(.@eac) || 				// First Class
-			   Is_First_Cls(.@eac&(~EAJL_UPPER)) ||	// Trans. First Cls
-			   (.BabyClass && Is_First_Cls(.@eac&(~EAJL_BABY))) ) {	// Baby First Cls
-		// Player is First Class (not Novice)
-		// most jobs should have two options here  (2-1 and 2-2)
-		.@class1 = roclass(.@eac|EAJL_2_1); // 2-1
-		.@class2 = roclass(.@eac|EAJL_2_2); // 2-2
-		// dispbottom "Debug: Classes: class1 ("+.@class1+"), class2 ("+.@class2+")";
-		if(.LastJob && lastJob && (.@eac&EAJL_UPPER)) {
-			// Player is rebirth Cls and linear class changes are enforced
-			Require_Level(.Req_Second[0], .Req_Second[1]);
-			Job_Options(.@job_opt, lastJob + Job_Novice_High);
-		} else {
-			// Class is not enforced, player can decide.
-			if( .@class1 > 0 ) { // 2-1
-				Require_Level(.Req_Second[0], .Req_Second[1]);
-				Job_Options(.@job_opt, .@class1);
-			}
-			if( .@class2 > 0 ) { // 2-2
-				Require_Level(.Req_Second[0], .Req_Second[1]);
-				Job_Options(.@job_opt, .@class2);
-			}
-		}
-	}
-	
-	// Displaying the Job Menu defined by .@job_opt.
-	// .@job_opt should not be changed below this line.
-	function Job_Menu;
-	Job_Menu(.@job_opt);
-	close;
-
-// Displays the job menu
-function	Job_Menu	{
-	// getarg(0) is the .@job_opt array holding all available job changes.
-	function Confirm_Change;
-	while(true) {
-		.@opt_cnt =  getarraysize(getarg(0));
-		if( .@opt_cnt <= 0 ) {
-			mes "No more jobs are available.";
-			close;
-		}
-
-		.@selected = 0; // Just a single job class given, no select needed
-		if (.@opt_cnt > 1) {
-			// Multiple job classes given. Select one and save it to .@class
-			// After that confirm .@class
-			mes "Select a job.";
-			.@menu$ = "";
-			for (.@i = 0; .@i < .@opt_cnt; .@i++) {
-				if( getelementofarray(getarg(0), .@i) == Job_Novice_High)
-					.@jobname$ = "^0055FFRebirth^000000";
-				else
-					.@jobname$ = jobname(getelementofarray(getarg(0), .@i));
-				.@menu$ = .@menu$ + " ~ " + .@jobname$ + ":";
-			}
-			.@menu$ = .@menu$+" ~ ^777777Cancel^000000";
-			.@selected = select(.@menu$) - 1;
-			if( .@selected < 0 || .@selected >= .@opt_cnt )
-				close;
-			next;
-			mes .NPCName$;
-		}
-		.@class = getelementofarray(getarg(0), .@selected);
-		if ((.@class == Job_Super_Novice || .@class == Job_Super_Baby) &&
-				BaseLevel < .SNovice) {
-			// Special Level Requirement because Super Novice and
-			// Super Baby can both be selected in one of the first class
-			// changes. That's why the Level Requirement is after and not before
-			// the selection.
-			mes "A base level of " + .SNovice +
-				" is required to turn into a " + jobname(.@class) + ".";
-			return;
-		}
-		// Confirm the Class
-		Confirm_Change(.@class, .@opt_cnt > 1);
-		next;
-		mes .NPCName$;
-	}
-	return;
-}
+// -- Add this at item DB. ( Change it to any items to your like. )
+// -- 30000,JobClassTicket,JobClassTicket,11,10,,10,,,,,0xFFFFFFFF,7,2,,,,,,{ doevent "ClassHelper::OnPCLoginEvent"; },{},{}
 
 
-// Executes the actual jobchange and closes.
-function	Job_Change	{
-	.@previous_class = Class;
-	.@to_cls = getarg(0);
-	next;
-	mes .NPCName$;
-	mes "You are now " + callfunc("F_InsertArticle", jobname(.@to_cls)) + "!";
-	if (.@to_cls == Job_Novice_High && .LastJob)
-		lastJob = Class; // Saves the lastJob for rebirth
-	jobchange .@to_cls;
-	if (.@to_cls == Job_Novice_High)
-		resetlvl(1);
-	else if (.@to_cls == Job_Baby) {
-		resetstatus;
-		resetskill;
-		set SkillPoint,0;
-	}
-	specialeffect2 EF_ANGEL2;
-	specialeffect2 EF_ELECTRIC;
-	if (.@previous_class != Class) {
-		if (.Platinum)
-			callfunc "F_GetPlatinumSkills";
-		if (.GetJobEquip)
-			Get_Job_Equip();
-	}
-	close; // Always closes after the change
-}
+prontera,153,192,5	script	ClassHelper	891,{
 
-function	Confirm_Change	{
-	// Player confirms he want to change into .@class
-	.@class = getarg(0, -1);
-	.@back = getarg(1, false);
-	if( .@class < 0 || eaclass(.@class) == -1 ) {
-		mes "Unknown Class Error.";
-		close;
-	}
-	mes "Do you want to change into ^0055FF"+jobname(.@class)+"^000000 class?";
-	.@job_option$ = " ~ Change into ^0055FF"+jobname(.@class)+"^000000 class";
-	if( .@class == Job_Novice_High)
-		.@job_option$ = " ~ ^0055FFRebirth^000000";
-	
-	if (select(.@job_option$+": ~ ^777777" + 
-			((.@back) ?"Go back" : "Cancel") + "^000000") == 1) {
-		Job_Change(.@class);
-	}
-	if (!.@back)
-		close; // "Cancel" pressed
-	return;
-}
+// -- Configuration Option
+set .npcname$,"[ ^0000FF Class Helper ^000000 ]";
+set .InfoMenu,1;	// Classes Informations Option [ 0 - Disable / 1 - Enable ]
+set .1stClassMenu,0;	// First Job Class Option [ 0 - Disable / 1 - Enable ]
+set .2ndClassMenu,0;	// Second Job Class Option [ 0 - Disable / 1 - Enable ]
+set .High1stClassMenu,0;	// High 1st Class Option [ 0 - Disable / 1 - Enable ]
+set .Trans2ndClassMenu,1;	// Transcendent Class Option [ 0 - Disable / 1 - Enable ]
+set .Trans3rdClassMenu,0;	// Third Job Class Option [ 0 - Disable / 1 - Enable ]
+set .ExpandedClassMenu,1;	// Expanded Class Option [ 0 - Disable / 1 - Enable ]
+set .BabyClassMenu,0;	// Baby Job Class Option [ 0 - Disable / 1 - Enable ]
+set .Baby3rdClassMenu,0;	// Baby Third Job Class Option [ 0 - Disable / 1 - Enable ]
+set .Allskills,1;	// Complete Skills Option [ 0 - Disable / 1 - Enable ]
 
-// Function which gives a job related item to the player
-// the items are the rewards from the original job change quests
-function	Get_Job_Equip	{
-	// Note: The item is dropping, when the player can't hold it.
-	// But that's better than not giving the item at all.
-	.@eac = eaclass();
-	if( .@eac&EAJL_FOURTH ) {
-		// Fourth Class Items
-		getitem 490087,1; // Hourglass Necklace
-	} else if( .@eac&EAJL_THIRD ) {
-		// Third Class Items
-		getitem 2795,1;	//	Green Apple Ring for every 3rd Class
-		switch(BaseJob) {
-			// BaseJob of Third Cls
-			// For Normal Third, Baby Third and Transcended Third Cls
-			case Job_Knight:
-				getitem 5746,1;	break;	//	Rune Circlet [1]
-			case Job_Wizard:
-				getitem 5753,1;	break;	//	Magic Stone Hat [1]
-			case Job_Hunter:
-				getitem 5748,1;	break;	//	Sniper Goggle [1]
-			case Job_Priest:
-				getitem 5747,1;	break;	//	Mitra [1]
-			case Job_Blacksmith:
-				getitem 5749,1;	break;	//	Driver Band [1]
-			case Job_Assassin:
-				getitem 5755,1;	break;	//	Silent Executor [1]
-			case Job_Crusader:
-				getitem 5757,1;	break;	//	Dip Schmidt Helm [1]
-			case Job_Sage:
-				getitem 5756,1;	break;	//	Wind Whisper [1]
-			case Job_Bard:
-				getitem 5751,1;	break;	//	Maestro Song's Hat [1]
-			case Job_Dancer:
-				getitem 5758,1;	break;	//	Dying Swan [1]
-			case Job_Monk:
-				getitem 5754,1;	break;	//	Blazing Soul [1]
-			case Job_Alchemist:
-				getitem 5752,1;	break;	//	Midas Whisper[1]
-			case Job_Rogue:
-				getitem 5750,1; 		//	Shadow Handicraft [1]
-				getitem 6121,1;			//	Makeover Brush
-				getitem 6122,1;	break;	//	Paint Brush
-		}
-	} else if (.@eac&EAJL_2) {
-		// Second Class (And not Third Class)
-		switch(BaseJob) {
-			// Second Class
-			case Job_Knight:
-				getitem 1163,1;	break;	//	Claymore [0]
-			case Job_Priest:
-				getitem 1522,1;	break;	//	Stunner [0]
-			case Job_Wizard:
-				getitem 1617,1;	break;	//	Survivor's Rod [0]
-			case Job_Blacksmith:
-				getitem 1360,1;	break;	//	Two-Handed-Axe [1]
-			case Job_Hunter:
-				getitem 1718,1;	break;	//	Hunter Bow [0]
-			case Job_Assassin:
-				getitem 1254,1;	break;	//	Jamadhar [0]
-			case Job_Crusader:
-				getitem 1410,1;	break;	//	Lance [0]
-			case Job_Monk:
-				getitem 1807,1;	break;	//	Fist [0]
-			case Job_Sage:
-				getitem 1550,1;	break;	//	Book [3]
-			case Job_Rogue:
-				getitem 1222,1;	break;	//	Damascus [1]
-			case Job_Alchemist:
-				getitem 1126,1;	break;	//	Saber [2]
-			case Job_Bard:
-				getitem 1907,1;	break;	//	Guitar [0]
-			case Job_Dancer:
-				getitem 1960,1;	break;	//	Whip [1]
-			case Job_Super_Novice:
-				getitem 1208,1;	break;	//	Main Gauche [4]
-			case Job_Star_Gladiator:
-				getitem 1550,1;	break;	//	Book [3]
-			case Job_Soul_Linker:
-				getitem 1617,1;	break;	//	Survivor's Rod [0]
-		}
-	} else {
-		// Neither Second or Third Cls
-		// => First Cls or not covered by the switch
-		switch(BaseClass) {
-			// First Class
-			case Job_Swordman:
-				getitem 1108,1;	break;	//	Blade [4]
-			case Job_Mage:
-				getitem 1602,1;	break;	//	Rod [4]
-			case Job_Archer:
-				getitem 1705,1;	break;	//	Composite Bow [4]
-			case Job_Acolyte:
-				getitem 1505,1;	break;	//	Mace [4]
-			case Job_Merchant:
-				getitem 1302,1;	break;	//	Axe [4]
-			case Job_Thief:
-				getitem 1208,1;	break;	//	Main Gauche [4]
-			case Job_Gunslinger:
-				getitem 13101,1; break;	//	Six Shooter [2]
-			case Job_Ninja:
-				getitem 13010,1; break;	//	Asura [2]
-		}
-	}
-	return;
-}
+// -- Usable for Only 1 Time
+set .Based,1;	// [ 0 - Account Based  / 1 - Character Based ]
+
+
+if( ClassHelper == 1|| #ClassHelper == 1 ) end;
+
+Main_Menu:
+   mes .npcname$;
+   mes "I am the Job Class Helper...";
+   mes "I am here to help you.";
+   mes " ^FF0000________________________________^000000";
+   mes "Do you wish to become Stronger ?";
+   mes " ^FF0000________________________________^000000";
+   next;
+   mes .npcname$;
+   mes "Do you admire those who have a great power ? Do you wish to become a part of them ? If yes , then which classes that you admire the most ?";
+   next;
+   switch(select(( .InfoMenu == 0 )?"":"^4EEE94Classes Information^000000",
+               ( .1stClassMenu == 0 )?"":"^0000FFFirst Job Classes^000000",
+               ( .2ndClassMenu == 0 )?"":"^0000FFSecond Job Classes^000000",    
+               ( .High1stClassMenu == 0 )?"":"^0000FFHigh First Job Classes^000000",    
+               ( .Trans2ndClassMenu == 0 )?"":"^0000FFTranscendent Job Classes^000000",    
+               ( .Trans3rdClassMenu == 0 )?"":"^0000FFThird Job Classes^000000",        
+               ( .ExpandedClassMenu == 0 )?"":"^0000FFExpanded Job Classes^000000",    
+               ( .BabyClassMenu == 0 )?"":"^0000FFBaby Normal Job Classes^000000",        
+               ( .Baby3rdClassMenu == 0 )?"":"^0000FFBaby Third Job Classes^000000",        
+               "^FF0000Sorry, i admire nobody....^000000")) {
+
+                   Case 1: goto Classes_info;
+                   Case 2:    goto FirstJob_Classes;
+                   Case 3:    goto SecondJob_Classes;
+                   Case 4:    goto HighFirstJob_Classes;
+                   Case 5:    goto TransSecondJob_Classes;
+                   Case 6:    goto TransThirdJob_Classes;
+                   Case 7:    goto ExpandedJob_Classes;
+                   Case 8:    goto BabyJob_Classes;
+                   Case 9:    goto BabyThirdJob_Classes;
+                   Case 10:        
+                           if ( .Based == 0 ){    set #ClassHelper,1;    }
+                           if ( .Based == 1 ){    set ClassHelper,1;    }
+                           close;
+           }
+
+FirstJob_Classes:
+   mes .npcname$;
+   mes "So, i give you a chance now. Which Classes will you choose to join ? Tell me your desired Classes.";
+   next;
+   switch(select("^76EE00Swordman^000000",
+               "^76EE00Magician^000000",
+               "^76EE00Archer^000000",
+               "^76EE00Acolyte^000000",
+               "^76EE00Merchant^000000",
+               "^76EE00Thief^000000",
+               "^FF0000Back^000000")) {
+
+// --- callsub Job_Changing,<JOB>,<BaseLv>,<JobLv>,<Skill>,<Announce>;    
+
+           Case 1:    callsub Job_Changing,1,99,50,60,"All";
+           Case 2:    callsub Job_Changing,2,99,50,60,"All";
+           Case 3:    callsub Job_Changing,3,99,50,60,"All";
+           Case 4:    callsub Job_Changing,4,99,50,60,"All";
+           Case 5:    callsub Job_Changing,5,99,50,60,"All";
+           Case 6:    callsub Job_Changing,6,99,50,60,"All";
+           Case 7:    goto Main_Menu;
+       }
+
+HighFirstJob_Classes:
+   mes .npcname$;
+   mes "So, i give you a chance now. Which Classes will you choose to join ? Tell me your desired Classes.";
+   next;
+   switch(select("^76EE00High Swordman^000000",
+               "^76EE00High Magician^000000",
+               "^76EE00High Archer^000000",
+               "^76EE00High Acolyte^000000",
+               "^76EE00High Merchant^000000",
+               "^76EE00High Thief^000000",
+               "^FF0000Back^000000")) {
+
+// --- callsub Job_Changing,<JOB>,<BaseLv>,<JobLv>,<Skill>,<Announce>;    
+
+           Case 1:    callsub Job_Changing,4002,99,50,60,"All";
+           Case 2:    callsub Job_Changing,4003,99,50,60,"All";
+           Case 3:    callsub Job_Changing,4004,99,50,60,"All";
+           Case 4:    callsub Job_Changing,4005,99,50,60,"All";
+           Case 5:    callsub Job_Changing,4006,99,50,60,"All";
+           Case 6:    callsub Job_Changing,4007,99,50,60,"All";
+           Case 7:    goto Main_Menu;
+       }
+
+SecondJob_Classes:
+   mes .npcname$;
+   mes "So, i give you a chance now. Which Classes will you choose to join ? Tell me your desired Classes.";
+   next;
+   switch(select("^76EE00Knight^000000",
+               "^76EE00Priest^000000",
+               "^76EE00Wizard^000000",
+               "^76EE00Blacksmith^000000",
+               "^76EE00Hunter^000000",
+               "^76EE00Assassin^000000",
+               "^76EE00Crusader^000000",
+               "^76EE00Monk^000000",
+               "^76EE00Sage^000000",
+               "^76EE00Rogue^000000",
+               "^76EE00Alchemist^000000",
+               ( Sex == 0 )?"":"^76EE00Dancer^000000",        
+               ( Sex == 1 )?"":"^76EE00Bard^000000",    
+               "^FF0000Back^000000")) {
+
+// --- callsub Job_Changing,<JOB>,<BaseLv>,<JobLv>,<Skill>,<Announce>;    
+
+           Case 1:    callsub Job_Changing,7,99,50,110,"All";
+           Case 2:    callsub Job_Changing,8,99,50,110,"All";
+           Case 3:    callsub Job_Changing,9,99,50,110,"All";
+           Case 4:    callsub Job_Changing,10,99,50,110,"All";
+           Case 5:    callsub Job_Changing,11,99,50,110,"All";
+           Case 6:    callsub Job_Changing,12,99,50,110,"All";
+           Case 7:    callsub Job_Changing,14,99,50,110,"All";
+           Case 8:    callsub Job_Changing,15,99,50,110,"All";
+           Case 9:    callsub Job_Changing,16,99,50,110,"All";
+           Case 10:    callsub Job_Changing,17,99,50,110,"All";
+           Case 11:    callsub Job_Changing,18,99,50,110,"All";
+           Case 12:    callsub Job_Changing,20,99,50,110,"All";
+           Case 13:    callsub Job_Changing,19,99,50,110,"All";
+           Case 14:    goto Main_Menu;
+       }
+
+TransSecondJob_Classes:
+   mes .npcname$;
+   mes "So, i give you a chance now. Which Classes will you choose to join ? Tell me your desired Classes.";
+   next;
+   switch(select("^76EE00Lord Knight^000000",
+               "^76EE00High Priest^000000",
+               "^76EE00High Wizard^000000",
+               "^76EE00Whitesmith^000000",
+               "^76EE00Sniper^000000",
+               "^76EE00Assassin Cross^000000",
+               "^76EE00Paladin^000000",
+               "^76EE00Champion^000000",
+               "^76EE00Professor^000000",
+               "^76EE00Stalker^000000",
+               "^76EE00Creator^000000",
+               ( Sex == 0 )?"":"^76EE00Gypsy^000000",        
+               ( Sex == 1 )?"":"^76EE00Clowm^000000",    
+               "^FF0000Back^000000")) {
+
+// --- callsub Job_Changing,<JOB>,<BaseLv>,<JobLv>,<Skill>,<Announce>;    
+
+           Case 1:    callsub Job_Changing,4008,255,120,130,"All";
+           Case 2:    callsub Job_Changing,4009,255,120,130,"All";
+           Case 3:    callsub Job_Changing,4010,255,120,130,"All";
+           Case 4:    callsub Job_Changing,4011,255,120,130,"All";
+           Case 5:    callsub Job_Changing,4012,255,120,130,"All";
+           Case 6:    callsub Job_Changing,4013,255,120,130,"All";
+           Case 7:    callsub Job_Changing,4015,255,120,130,"All";
+           Case 8:    callsub Job_Changing,4016,255,120,130,"All";
+           Case 9:    callsub Job_Changing,4017,255,120,130,"All";
+           Case 10:    callsub Job_Changing,4018,255,120,130,"All";
+           Case 11:    callsub Job_Changing,4019,255,120,130,"All";
+           Case 12:    callsub Job_Changing,4021,255,120,130,"All";
+           Case 13:    callsub Job_Changing,4020,255,120,130,"All";
+           Case 14:    goto Main_Menu;
+       }
+
+TransThirdJob_Classes:
+   mes .npcname$;
+   mes "So, i give you a chance now. Which Classes will you choose to join ? Tell me your desired Classes.";
+   next;
+   switch(select("^76EE00Rune Knight^000000",
+               "^76EE00Warlock^000000",
+               "^76EE00Ranger^000000",
+               "^76EE00Arch Bishop^000000",
+               "^76EE00Mechanic^000000",
+               "^76EE00Guillotine Cross^000000",
+               "^76EE00Royal Guard^000000",
+               "^76EE00Sorcerer^000000",
+               ( Sex == 0 )?"":"^76EE00Wanderer^000000",        
+               ( Sex == 1 )?"":"^76EE00Minstrel^000000",    
+               "^76EE00Shura^000000",
+               "^76EE00Genetic^000000",
+               "^76EE00Shadow Chaser^000000",
+               "^FF0000Back^000000")) {
+
+// --- callsub Job_Changing,<JOB>,<BaseLv>,<JobLv>,<Skill>,<Announce>;    
+
+           Case 1:    callsub Job_Changing,4060,99,70,200,"All";
+           Case 2:    callsub Job_Changing,4061,99,70,200,"All";
+           Case 3:    callsub Job_Changing,4062,99,70,200,"All";
+           Case 4:    callsub Job_Changing,4063,99,70,200,"All";
+           Case 5:    callsub Job_Changing,4064,99,70,200,"All";
+           Case 6:    callsub Job_Changing,4065,99,70,200,"All";
+           Case 7:    callsub Job_Changing,4073,99,70,200,"All";
+           Case 8:    callsub Job_Changing,4074,99,70,200,"All";
+           Case 9:    callsub Job_Changing,4076,99,70,200,"All";
+           Case 10:    callsub Job_Changing,4075,70,70,200,"All";
+           Case 11:    callsub Job_Changing,4077,70,70,200,"All";
+           Case 12:    callsub Job_Changing,4078,70,70,200,"All";
+           Case 13:    callsub Job_Changing,4079,70,70,200,"All";
+           Case 14:    goto Main_Menu;
+       }
+
+ExpandedJob_Classes:
+   mes .npcname$;
+   mes "So, i give you a chance now. Which Classes will you choose to join ? Tell me your desired Classes.";
+   next;
+   switch(select("^76EE00Super Novice^000000",
+               "^76EE00Gunslinger^000000",
+               "^76EE00Ninja^000000",
+               "^76EE00Takewon^000000",
+               "^76EE00Star Gladiator^000000",
+               "^76EE00Soul Linker^000000",
+               "^FF0000Back^000000")) {
+
+// --- callsub Job_Changing,<JOB>,<BaseLv>,<JobLv>,<Skill>,<Announce>;    
+
+           Case 1:    callsub Job_Changing,23,99,99,110,"All";
+           Case 2:    callsub Job_Changing,24,99,50,600,"All";
+           Case 3:    callsub Job_Changing,25,99,50,60,"All";
+           Case 4:    callsub Job_Changing,4046,99,50,60,"All";
+           Case 5:    callsub Job_Changing,4047,99,50,110,"All";
+           Case 6:    callsub Job_Changing,4049,99,50,110,"All";
+           Case 7:    goto Main_Menu;
+       }
+
+BabyJob_Classes:
+   mes .npcname$;
+   mes "So, i give you a chance now. Which Classes will you choose to join ? Tell me your desired Classes.";
+   next;
+   switch(select("^76EE00Baby Swordman^000000",
+               "^76EE00Baby Magician^000000",
+               "^76EE00Baby Archer^000000",
+               "^76EE00Baby Acolyte^000000",
+               "^76EE00Baby Merchant^000000",
+               "^76EE00Baby Thief^000000",
+               "^76EE00Baby Knight^000000",
+               "^76EE00Baby Priest^000000",
+               "^76EE00Baby Wizard^000000",
+               "^76EE00Baby Blacksmith^000000",
+               "^76EE00Baby Hunter^000000",
+               "^76EE00Baby Assassin^000000",
+               "^76EE00Baby Crusader^000000",
+               "^76EE00Baby Monk^000000",
+               "^76EE00Baby Sage^000000",
+               "^76EE00Baby Rogue^000000",
+               "^76EE00Baby Alchemist^000000",
+               ( Sex == 0 )?"":"^76EE00Baby Dancer^000000",        
+               ( Sex == 1 )?"":"^76EE00Baby Bard^000000",    
+               "^76EE00Baby Baby^000000",
+               "^FF0000Back^000000")) {
+
+// --- callsub Job_Changing,<JOB>,<BaseLv>,<JobLv>,<Skill>,<Announce>;    
+
+           Case 1:    callsub Job_Changing,4024,99,50,60,"All";
+           Case 2:    callsub Job_Changing,4025,99,50,60,"All";
+           Case 3:    callsub Job_Changing,4026,99,50,60,"All";
+           Case 4:    callsub Job_Changing,4027,99,50,60,"All";
+           Case 5:    callsub Job_Changing,4028,99,50,60,"All";
+           Case 6:    callsub Job_Changing,4029,99,50,60,"All";
+           Case 7:    callsub Job_Changing,4030,99,50,110,"All";
+           Case 8:    callsub Job_Changing,4031,99,50,110,"All";
+           Case 9:    callsub Job_Changing,4032,99,50,110,"All";
+           Case 10:    callsub Job_Changing,4033,99,50,110,"All";
+           Case 11:    callsub Job_Changing,4034,99,50,110,"All";
+           Case 12:    callsub Job_Changing,4035,99,50,110,"All";
+           Case 13:    callsub Job_Changing,4037,99,50,110,"All";
+           Case 14:    callsub Job_Changing,4038,99,50,110,"All";
+           Case 15:    callsub Job_Changing,4039,99,50,110,"All";
+           Case 16:    callsub Job_Changing,4040,99,50,110,"All";
+           Case 17:    callsub Job_Changing,4041,99,50,110,"All";
+           Case 18:    callsub Job_Changing,4043,99,50,110,"All";
+           Case 19:    callsub Job_Changing,4042,99,50,110,"All";
+           Case 20:    callsub Job_Changing,4045,99,50,110,"All";
+           Case 21:    goto Main_Menu;
+       }
+
+BabyThirdJob_Classes:
+   mes .npcname$;
+   mes "So, i give you a chance now. Which Classes will you choose to join ? Tell me your desired Classes.";
+   next;
+   switch(select("^76EE00Baby Rune Knight^000000",
+               "^76EE00Baby Warlock^000000",
+               "^76EE00Baby Ranger^000000",
+               "^76EE00Baby Arch Bishop^000000",
+               "^76EE00Baby Mechanic^000000",
+               "^76EE00Baby Guillotine Cross^000000",
+               "^76EE00Baby Royal Guard^000000",
+               "^76EE00Baby Sorcerer^000000",
+               ( Sex == 0 )?"":"^76EE00Baby Wanderer^000000",        
+               ( Sex == 1 )?"":"^76EE00Baby Minstrel^000000",    
+               "^76EE00Baby Shura^000000",
+               "^76EE00Baby Genetic^000000",
+               "^76EE00Baby Shadow Chaser^000000",
+               "^FF0000Back^000000")) {
+
+// --- callsub Job_Changing,<JOB>,<BaseLv>,<JobLv>,<Skill>,<Announce>;    
+
+           Case 1:    callsub Job_Changing,4096,99,70,200,"All";
+           Case 2:    callsub Job_Changing,4097,99,70,200,"All";
+           Case 3:    callsub Job_Changing,4098,99,70,200,"All";
+           Case 4:    callsub Job_Changing,4099,99,70,200,"All";
+           Case 5:    callsub Job_Changing,4100,99,70,200,"All";
+           Case 6:    callsub Job_Changing,4101,99,70,200,"All";
+           Case 7:    callsub Job_Changing,4102,99,70,200,"All";
+           Case 8:    callsub Job_Changing,4103,99,70,200,"All";
+           Case 9:    callsub Job_Changing,4105,99,70,200,"All";
+           Case 10:    callsub Job_Changing,4104,99,70,200,"All";
+           Case 11:    callsub Job_Changing,4106,99,70,200,"All";
+           Case 12:    callsub Job_Changing,4107,99,70,200,"All";
+           Case 13:    callsub Job_Changing,4108,99,70,200,"All";
+           Case 14:    goto Main_Menu;
+       }
+
+Job_Changing:
+       mes .npcname$;
+       mes "You are now a part of ^FF0000"+jobname(getarg(0))+"^000000.";
+       if (compare(getarg(4),"All")){    announce "[ "+strcharinfo(0)+" ] has changed to [ "+jobname(getarg(0))+" ].",bc_all,0x76EE00;    }
+       if (compare(getarg(4),"Map")){    announce "[ "+strcharinfo(0)+" ] has changed to [ "+jobname(getarg(0))+" ].",bc_map,0x76EE00;    }
+       if (compare(getarg(4),"Area")){    announce "[ "+strcharinfo(0)+" ] has changed to [ "+jobname(getarg(0))+" ].",bc_area,0x76EE00;    }
+       if (compare(getarg(4),"Self")){    announce "[ "+strcharinfo(0)+" ] has changed to [ "+jobname(getarg(0))+" ].",bc_self,0x76EE00;    }
+       jobchange getarg(0);
+       set BaseLevel,getarg(1);
+    set JobLevel,getarg(2);
+       ResetSkill;
+       ResetStatus;
+    set SkillPoint,getarg(3);
+       if ( .Allskills == 1 ){
+       atcommand "@allskills";
+    set SkillPoint,0;
+       }
+    percentheal 100,100;
+       if ( .Based == 0 ){    set #ClassHelper,1;    }
+       if ( .Based == 1 ){    set ClassHelper,1;    }
+    warp "prontera",155,180;
+    save "prontera",155,180;
+       close;
+
+Classes_info:
+   mes .npcname$;
+   mes "=====[^76EE00 Swordman Classes ^000000]=====";
+   mes " ^FF0000________________________________^000000";
+   mes "^4EEE94Description :^000000";
+   mes "Enthusiastic skills in sword fighting is a definite attraction to all teenagers. Easy to control and master character enables most players to be a great player.";
+   mes " ^FF0000________________________________^000000";
+   next;
+   mes .npcname$;
+   mes "=====[^76EE00 Archer Classes ^000000]=====";
+   mes " ^FF0000________________________________^000000";
+   mes "^4EEE94Description :^000000";
+   mes "Long ranged attack ability and special techniques of archers in defeating enemy often lure players to try this.";
+   mes " ^FF0000________________________________^000000";
+   next;
+   mes .npcname$;
+   mes "=====[^76EE00 Mage Classes ^000000]=====";
+   mes " ^FF0000________________________________^000000";
+   mes "^4EEE94Description :^000000";
+   mes "Fascinating element techniques involvement of nature in its abilities is truly amazing with their series of undefeatable magics.";
+   mes " ^FF0000________________________________^000000";
+   next;
+   mes .npcname$;
+   mes "=====[^76EE00 Thief Classes ^000000]=====";
+   mes " ^FF0000________________________________^000000";
+   mes "^4EEE94Description :^000000";
+   mes "Poisoning and dodging abilities will defeat most of the enemy. Maximum defensive and offensive ability caused this character to fearsome one.";
+   mes " ^FF0000________________________________^000000";
+   next;
+   mes .npcname$;
+   mes "=====[^76EE00 Acolyte Classes ^000000]=====";
+   mes " ^FF0000________________________________^000000";
+   mes "^4EEE94Description :^000000";
+   mes "A supportive character, most of the skills like helping will benefit to teammates who lead to teammates act like a terminator.";
+   mes " ^FF0000________________________________^000000";
+   next;
+   mes .npcname$;
+   mes "=====[^76EE00 Merchant Classes ^000000]=====";
+   mes " ^FF0000________________________________^000000";
+   mes "^4EEE94Description :^000000";
+   mes "Involving communication with other players that emphasizes on battles, intelligence in business dealing. His versatility made him must not be look down.";
+   mes " ^FF0000________________________________^000000";
+   next;
+   mes .npcname$;
+   mes "=====[^76EE00 Super Novice ^000000]=====";
+   mes " ^FF0000________________________________^000000";
+   mes "^4EEE94Description :^000000";
+   mes "A job who are Advanced after Novice Class. It look alike like a Novice but it is not. Beside that, it can learn most of the skills for all 1st Job Class.";
+   mes " ^FF0000________________________________^000000";
+   next;
+   mes .npcname$;
+   mes "=====[^76EE00 Gunslinger ^000000]=====";
+   mes " ^FF0000________________________________^000000";
+   mes "^4EEE94Description :^000000";
+   mes "The only Job class in RO who are using Gun as weapon. If are you a Gun Lover , there is no doubt you will choose this Job.";
+   mes " ^FF0000________________________________^000000";
+   next;
+   mes .npcname$;
+   mes "=====[^76EE00 Ninja ^000000]=====";
+   mes " ^FF0000________________________________^000000";
+   mes "^4EEE94Description :^000000";
+   mes "A mysterious Job Class , who alway processing Ancient Spells , look alike with Mage but not mage , good in PK , can evade very well during PK.";
+   mes " ^FF0000________________________________^000000";
+   next;
+   mes .npcname$;
+   mes "=====[^76EE00 Taekwon ^000000]=====";
+   mes " ^FF0000________________________________^000000";
+   mes "^4EEE94Description :^000000";
+   mes "Just like the name has mentioned. The only class in RO who are not using any Weapon. Attack enemy using barehand and foots. ";
+   mes " ^FF0000________________________________^000000";
+   next;
+   mes .npcname$;
+   mes "=====[^76EE00 Star Gladiator ^000000]=====";
+   mes " ^FF0000________________________________^000000";
+   mes "^4EEE94Description :^000000";
+   mes "A class who can use the power of the Sun / Star / Moon. By processing the power of Universe to gain a stronger Power.";
+   mes " ^FF0000________________________________^000000";
+   next;
+   mes .npcname$;
+   mes "=====[^76EE00 Soul Linker ^000000]=====";
+   mes " ^FF0000________________________________^000000";
+   mes "^4EEE94Description :^000000";
+   mes "Class that work like a Shaman, who able to recalling the soul of the dead from the underworld to Boost other class ability.";
+   mes " ^FF0000________________________________^000000";
+   next;
+   goto Main_Menu;
 
 OnInit:
-	// Initialisation, do not edit these
-	.NPCName$ = "[Job Master]";
-	
-	// Settings
-	.FourthClass = true;				// Enable fourth classes?
-	.FourthExpanded = true;				// Enable new expanded fourth classes: Ex. Hyper Novice, Rebellion, Shinkiro/Shiranui?
-	.ThirdClass = true;					// Enable third classes?
-	.RebirthClass = true;				// Enable rebirth classes?
-	.SecondExpanded = true;				// Enable new expanded second classes: Ex. Super Novice, Kagerou/Oboro, Rebellion?
-	.BabyNovice = true;					// Enable Baby novice classes? Disable it if you like player must have parent to get job baby.
-	.BabyClass = true;					// Enable Baby classes?
-	.BabyThird = true;					// Enable Baby third classes?
-	.BabyExpanded = true;				// Enable Baby Expanded classes: Ex. Baby Ninja, Baby Taekwon, etc.
-	.BabySummoner = true;				// Enable Baby Summoner?
-	.LastJob = true;					// Enforce linear class changes?
-	.SkillPointCheck = true;			// Force player to use up all skill points?
-	.Platinum = true;					// Get platinum skills automatically?
-	.GetJobEquip = false;				// Get job equipment (mostly weapons) on job change?
-
-	// Level Requirements
-	setarray .Req_First[0],1,10; 		// Minimum base level, job level to turn into 1st class
-	setarray .Req_Second[0],1,40; 		// Minimum base level, job level to turn into 2nd class
-	setarray .Req_Rebirth[0],99,50;		// Minimum base level, job level to rebirth
-	setarray .Req_Third[0],99,50;		// Minimum base level, job level to change to third class
-	setarray .Req_Fourth[0],200,70;		// Minimum base level, job level to change to fourth class
-	setarray .Req_Exp_NJ_GS[0],99,70; 	// Minimum base level, job level to turn into Expanded Ninja and Gunslinger
-	setarray .Req_Exp_SNOVI[0],99,99; 	// Minimum base level, job level to turn into Expanded Super Novice
-	setarray .Req_SHandler[0],200,60;	// Minimum base level, job level to turn into Spirit Handler
-	.SNovice = 45;						// Minimum base level to turn into Super Novice
-	
-	// Setting adjustments by PACKETVER
-	if( PACKETVER < 20161207 ) {
-		if( .BabyExpanded )
-			debugmes "jobmaster: BabyExpanded is disabled due to outdated PACKETVER.";
-		if( .BabySummoner )
-			debugmes "jobmaster: BabySummoner is disabled due to outdated PACKETVER.";
-		.BabyExpanded = false;
-		.BabySummoner = false;
-	}
-	end;
+waitingroom " Job Changer",0;
+end;
 }
-

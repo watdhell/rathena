@@ -1,0 +1,38 @@
+prontera,147,172,5	script	More Storage#prt	4_F_KAFRA4,{
+    mes "[ Kafra ]";
+    mes "Which storage do you want to open?";
+    next;
+    switch(select("Normal Storage","Storage1","Storage2","VIP Storage")) {
+        case 1:
+            mes "[ Kafra ]";
+            mes "Storage will be opened. Thank you";
+            close2;
+            openstorage;
+            break;
+        case 2:
+            mes "[ Kafra ]";
+            mes "Storage 1 will be opened";
+            close2;
+            openstorage2(1,STOR_MODE_GET|STOR_MODE_PUT);
+            break;
+        case 3:
+            mes "[ Kafra ]";
+            mes "Storage 1 will be opened";
+            close2;
+            openstorage2(2,STOR_MODE_GET|STOR_MODE_PUT);
+            break;
+        case 4:
+            mes "[ Kafra ]";
+            if (vip_status(1)) {
+                .@mode = STOR_MODE_GET|STOR_MODE_PUT;
+                mes "VIP will be opened. Thank you";
+            } else {
+                .@mode = STOR_MODE_GET;
+                mes "Seems you're no longer VIP anymore. You only can take the items.";
+            }
+            close2;
+            openstorage2(3,.@mode);
+            break;
+    }
+    end;
+}

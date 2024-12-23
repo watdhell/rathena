@@ -40,7 +40,18 @@ Body:
   - ID: 0
     Name: "Storage"
     Table: storage
-
+  - ID: 1
+    Name: "VIP"
+    Table: storage2
+    max: 300
+  - ID: 2
+    Name: "VIP2"
+    Table: storage3
+    max: 300
+  - ID: 3
+    Name: "VIP3"
+    Table: storage4
+    max: 300
 Footer:
   Imports:
     - Path: conf/import/inter_server.yml

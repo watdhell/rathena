@@ -1,0 +1,329 @@
+//============================================================
+//===== rAthena Script =======================================
+//= Card Collection Quest NPC
+//= By: Louis T Steinhil
+//= Mostly ChatGPT v 1.0
+//= v1.1 Added Alias Name to bonuses for better readability.
+//= v1.2 Added Cards submission even if the player doesn't
+//= have the right amount it will still submit regardless.
+//= v1.3 Initialization and resetting of arrays and variables: 
+//= Ensure that arrays and variables are properly initialized 
+//= and reset to avoid data from previous iterations.
+//= Avoiding nested loops with the same loop counter: 
+//= The loop counter for the outer and inner loops should be
+//= different to prevent conflicts.
+//= v1.4 Rearranged for better readability. Replaced getiteminfo
+//= on submit with getitemname.
+//============================================================
+
+yuno_in02,93,207,5	script	Card Album	4_ENERGY_WHITE,{
+
+switch (select("Start Card Collection:Reset:Cancel")) {
+		case 1: // Main GM OPTION
+		// Main GM OPTION
+		if (!getd("card_list")) {
+			// Define the fixed number of cards to collect
+			set .@num_cards_to_select, 5;
+			// Display the card collection quest dialogue
+			mes "[Card Collection NPC]";
+			mes "Welcome to the Card Collection Quest!";
+			mes "Please submit the following [ " + .@num_cards_to_select + " ] different card/s to receive rewards.";
+			next;
+			mes "You must collect the following cards:"; 
+			// Fetch random card IDs for the collection
+			if (checkre(0)) {
+				.@mob_db$  = "mob_db_re";
+				.@item_db$ = "item_db_re";
+			} else {
+				.@mob_db$  = "mob_db";
+				.@item_db$ = "item_db";
+			}			
+		freeloop 1;			
+			for (set .@i, 0; .@i < .@num_cards_to_select; set .@i, .@i + 1) {
+				.@string$ = "( `name_aegis` IN ( SELECT DISTINCT `drop1_item` FROM `" + .@mob_db$ + "` ) " +
+					"OR `name_aegis` IN ( SELECT DISTINCT `drop2_item` FROM `" + .@mob_db$ + "` ) " +
+					"OR `name_aegis` IN ( SELECT DISTINCT `drop3_item` FROM `" + .@mob_db$ + "` ) " +
+					"OR `name_aegis` IN ( SELECT DISTINCT `drop4_item` FROM `" + .@mob_db$ + "` ) " +
+					"OR `name_aegis` IN ( SELECT DISTINCT `drop5_item` FROM `" + .@mob_db$ + "` ) " +
+					"OR `name_aegis` IN ( SELECT DISTINCT `drop6_item` FROM `" + .@mob_db$ + "` ) " +
+					"OR `name_aegis` IN ( SELECT DISTINCT `drop7_item` FROM `" + .@mob_db$ + "` ) " +
+					"OR `name_aegis` IN ( SELECT DISTINCT `drop8_item` FROM `" + .@mob_db$ + "` ) " +
+					"OR `name_aegis` IN ( SELECT DISTINCT `drop9_item` FROM `" + .@mob_db$ + "` ) " +
+					"OR `name_aegis` IN ( SELECT DISTINCT `drop10_item` FROM `" + .@mob_db$ + "` ) )";
+
+				.@sql_query$ = "SELECT DISTINCT `id` FROM `" + .@item_db$ + "` WHERE `type` = 'Card' AND " + .@string$ + " ORDER BY RAND()";
+				.@nb = query_sql(.@sql_query$, .@id[0]);
+		freeloop 0;
+				if (.@nb < 1) {
+					mes "[Card Collection NPC]";
+					mes "There are not enough valid cards in the database.";
+					close;
+				}
+
+				// Find a valid card that is not an enchant card
+				for ( .@j = 0; .@j < .@nb; .@j++ ) {
+					if (getiteminfo(.@id[.@j], ITEMINFO_SUBTYPE) != CARD_ENCHANT) {
+						// Save the card ID
+						setd("Card" + .@i, .@id[.@j]);
+						break;  // Exit the loop once a valid card is found
+					}
+				}
+
+				// Check if all cards fetched are enchant cards
+				if (.@j >= .@nb) {
+					mes "[Card Collection NPC]";
+					mes "There are not enough valid cards in the database.";
+					close;
+				}
+
+				// Generate a random number of cards to collect (between 1 and 10)
+				set .@cards_to_collect, rand(1, 10);
+				setd("Card" + .@i + "_", 0);
+				setd("Collect" + .@i + "_", .@cards_to_collect);
+			}
+
+			// Clear the array for generating bonuses
+			deletearray .@j[0], getarraysize(.@j);
+			deletearray .@used_bonus_index[0], getarraysize(.@used_bonus_index);
+
+			// Generate bonus array with bonus strings
+			setarray .@bonus_string$, "bonus bStr,", "bonus bAgi,", "bonus bVit,", "bonus bInt,", "bonus bDex,", "bonus bLuk,";
+			// Generate corresponding alias array
+			setarray .@bonus_alias$, "Str +", "Agi +", "Vit +", "Int +", "Dex +", "Luk +";
+			setarray .@used_bonus_index[0], false, false, false, false, false, false;
+
+			// Display submitted cards and their statuses
+			for (set .@i, 0; .@i < .@num_cards_to_select; set .@i, .@i + 1) {
+				do {
+					set .@random_bonus_index, rand(0, getarraysize(.@bonus_string$) - 1);
+				} while (.@used_bonus_index[.@random_bonus_index]);
+
+				set .@used_bonus_index[.@random_bonus_index], true;
+				set .@random_number_bonus, rand(1, 10);
+
+				// Store the generated bonus and its value
+				setd("Bonus" + .@i + "_String$", .@bonus_string$[.@random_bonus_index]);
+				setd("Bonus" + .@i + "_Alias$", .@bonus_alias$[.@random_bonus_index]);
+				setd("Bonus" + .@i + "_Value", .@random_number_bonus);
+
+				.@j[.@i] = getd("Card" + .@i);
+				mes "(" + getd("Card" + .@i + "_") + " / " + getd("Collect" + .@i + "_") + ") - " + mesitemlink(.@j[.@i]);
+				mes "> Deposit Reward: " + getd("Bonus" + .@i + "_Alias$") + " " + .@bonus_value;
+				dispbottom("(" + getd("Card" + .@i + "_") + " / " + getd("Collect" + .@i + "_") + ") - " + itemlink(.@j[.@i]) + " > Deposit Reward: " + getd("Bonus" + .@i + "_Alias$") + " " + .@bonus_value);
+			}
+
+			// Set the card list flag
+			setd("card_list", 1);
+			close;
+		} else {
+			// Display regular options for starting the card collection or choosing "No"
+			switch (select("See List:Submit Cards:Retrieve Card/s:Cancel")) {
+				case 1: // See List
+					// Check if bonuses have been generated before
+					mes "[Card Collection NPC]";
+					mes "Here are your previously generated cards list & bonuses:";
+					for (set .@i, 0; .@i < 5; set .@i, .@i + 1) {
+						// Clear the array
+						deletearray .@j[0], getarraysize(.@j);
+						set .@bonus_alias$, getd("Bonus" + .@i + "_Alias$");
+						set .@bonus_value, getd("Bonus" + .@i + "_Value");
+
+						// Display submitted cards and their statuses
+						.@j[.@i] = getd("Card" + .@i);
+						mes "(" + getd("Card" + .@i + "_") + " / " + getd("Collect" + .@i + "_") + ") - " + mesitemlink(.@j[.@i]);
+						mes "> Deposit Reward: " + getd("Bonus" + .@i + "_Alias$") + " " + .@bonus_value;
+						dispbottom("(" + getd("Card" + .@i + "_") + " / " + getd("Collect" + .@i + "_") + ") - " + itemlink(.@j[.@i]) + " > Deposit Reward: " + getd("Bonus" + .@i + "_Alias$") + " " + .@bonus_value);
+						.@j[5] = .@j[5] + getiteminfo(.@j[.@i], ITEMINFO_AEGISNAME);
+					}
+					close;
+					break;
+				case 2: // Submit Cards
+					// Initialize the menu string
+					set .@menu$, "";
+
+					// Loop through the list of card IDs to populate the menu
+					for (set .@i, 0; .@i < 5; set .@i, .@i + 1) {
+						// Get the card name using its ID
+						set .@card_name$, getitemname(getd("Card" + .@i));
+
+						// Get the submission count using dedicated variable
+						set .@submission_count, getd("Card" + .@i + "_");
+
+						// Retrieve the required number of cards to collect for the chosen slot
+						set .@required_cards, getd("Collect" + .@i + "_");
+
+						// Determine the submission status of the card
+						set .@submission_status$, " (" + .@submission_count + " / " + .@required_cards + ")";
+
+						// Append the card name and submission status to the menu string
+						.@menu$ += .@submission_status$ + " - " +.@card_name$ + ":";
+					}
+
+					mes "[Card Collection NPC]";
+					mes "Which card would you like to submit?";
+
+					// Display the menu and handle player selection
+					set .@selection, select(.@menu$) - 1;
+					set .@selectedCardId, getd("Card" + .@selection);
+
+					// Retrieve the submission count
+					set .@submission_count, getd("Card" + .@selection + "_");
+
+					// Retrieve the required number of cards to collect for the chosen slot
+					set .@required_cards, getd("Collect" + .@selection + "_");
+
+					// Calculate the number of cards to submit
+					set .@cards_needed, .@required_cards - .@submission_count;
+
+					// Get the player's inventory
+					getinventorylist;
+
+					// Check if the player has the selected card in their inventory
+					set .@player_card_count, 0;
+					for(set .@j, 0; .@j < @inventorylist_count; set .@j, .@j + 1) {
+						if(@inventorylist_id[.@j] == .@selectedCardId) {
+							set .@player_card_count, @inventorylist_amount[.@j];
+							break;
+						}
+					}
+
+					// If player has no cards, inform and exit
+					if (.@player_card_count == 0) {
+						mes "[Card Collection NPC]";
+						mes "You do not have any of this card.";
+						close;
+					}
+
+					// Calculate the actual number of cards to submit (up to the needed amount)
+					set .@cards_to_submit, min(.@cards_needed, .@player_card_count);
+
+					// Update submission count
+					setd("Card" + .@selection + "_", .@submission_count + .@cards_to_submit);
+
+					// Remove the cards from the player's inventory
+					delitem .@selectedCardId, .@cards_to_submit;
+
+					mes "[Card Collection NPC]";
+					mes "Card submitted successfully!";
+
+					// If the card collection is complete for this card, apply the bonus
+					if (getd("Card" + .@selection + "_") >= getd("Collect" + .@selection + "_")) {
+						// Retrieve the stored bonus and its value
+						set .@bonus_string$, getd("Bonus" + .@selection + "_String$");
+						set .@bonus_alias$, getd("Bonus" + .@selection + "_Alias$");
+						set .@bonus_value, getd("Bonus" + .@selection + "_Value");
+
+						// Apply bonus
+						bonus_script(.@bonus_string$ + .@bonus_value + ";", 512);
+
+						// Display the bonus received
+						mes "[Bonus " + (.@selection + 1) + "]: " + .@bonus_alias$ + " " + .@bonus_value;
+					}
+					close;
+					break;
+				case 3: // Retrieve Cards
+					// Check if any cards have been submitted
+					set .@cards_submitted, 0;
+					for (set .@i, 0; .@i < 5; set .@i, .@i + 1) {
+						if (getd("Card" + .@i + "_") == getd("Card" + .@i + "_")) {
+							set .@cards_submitted, .@cards_submitted + 1;
+						}
+					}
+
+					if (.@cards_submitted == 0) {
+						mes "[Card Collection NPC]";
+						mes "You haven't submitted any cards yet.";
+						close;
+					}
+
+					// Check if the player has already started the card collection
+					if (getd("card_list") == 1) {
+						mes "[Card Collection NPC]";
+						mes "^FF0000Warning: Retrieving cards will reset the card/s submitted and revoke any bonuses generated.^000000";
+						next;
+					}
+					
+					// Retrieve submitted cards for 1 million zeny
+					if (Zeny < 1000000) {
+						mes "[Card Collection NPC]";
+						mes "You need 1,000,000 Zeny to retrieve the cards.";
+						close;
+					}
+
+					// Deduct 1 million zeny
+					set Zeny, Zeny - 1000000;
+
+					// Neutralize the granted bonuses
+					for (set .@i, 0; .@i < 5; set .@i, .@i + 1) {
+						if (getd("Card" + .@i + "_") == getd("Card" + .@i + "_")) {
+							// Retrieve the stored bonus and its value
+							set .@bonus_string$, getd("Bonus" + .@i + "_String$");
+							set .@bonus_value, getd("Bonus" + .@i + "_Value");
+
+							// Apply reverse bonus to neutralize the effect
+							//bonus_script(.@bonus_string$ + (-.@bonus_value) + ";", 512); //bugged stats won't be applied on the second try
+							bonus_script_clear 1;
+						}
+					}
+
+					// Return the cards to the player
+					for (set .@i, 0; .@i < 5; set .@i, .@i + 1) {
+						if (getd("Card" + .@i + "_") == getd("Card" + .@i + "_")) {
+							getitem getd("Card" + .@i), getd("Card" + .@i + "_");
+							setd("Card" + .@i + "_", 0);
+						}
+					}
+
+					mes "[Card Collection NPC]";
+					mes "You have retrieved your submitted cards and your bonus has been neutralized.";
+					close;
+					break;
+				default:
+					mes "[Card Collection NPC]";
+					mes "Alright, have a great day!";
+					close;
+					break;						
+			}
+		}
+		case 2: 
+			// Check if the player has enough Zeny
+			if (zeny < 5000000) {
+				mes "[Card Collection NPC]";
+				mes "You don't have enough Zeny to restart the card collection.";
+				close;
+			} else {
+				mes "[Card Collection NPC]";
+				mes "^FF0000Are you sure you want to restart the card collection? This action will deduct 5 million Zeny from your account^000000";
+				mes "^FF0000and the submitted card will be gone forever!^000000";
+				switch (select("Yes:No")) {
+					case 1:
+						// Deduct 5 million Zeny from the player
+						zeny -= 5000000;
+						// Start Card Collection again
+						setd("card_list", 0);
+						// Reset the flag to allow new bonuses to be generated
+						set .BonusesGenerated, 0;
+						next;
+						mes "[Card Collection NPC]";
+						mes "Card list and Bonus Stats have been reset. 5 million Zeny has been deducted from your account.";
+						close;
+						break;
+					case 2:
+						mes "[Card Collection NPC]";
+						mes "Card collection reset cancelled.";
+						close;
+						break;
+				}
+			}
+			break;		
+		default:
+			mes "[Card Collection NPC]";
+			mes "Alright, have a great day!";
+			close;
+			break;
+	}
+OnInit:
+	setunitdata( getnpcid(0), UNPC_GROUP_ID,6 );
+	setunittitle( getnpcid(0), "Universal" );
+	end;
+}
