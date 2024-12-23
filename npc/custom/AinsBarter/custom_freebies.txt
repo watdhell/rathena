@@ -1,0 +1,27 @@
+//===== rAthena Script ======================================= 
+//= Freebies NPC
+//===== Description: ========================================= 
+//= Freebies NPC script (Pre-Renewal).
+//============================================================
+
+prontera,164,174,4	script	Freebies	49,{
+
+	.@FreeCoin = 1000;	// Amount Coin
+
+	if (!#Freebies)  {
+		set #Freebies,1;
+		mes "[Freebies]";
+		mes "Welcome, this is your free coin";
+		set #CASHPOINTS, #CASHPOINTS + .@FreeCoin;
+		dispbottom "You've got " + callfunc("F_InsertComma", .@FreeCoin) + " Cash Points. Total: " + callfunc("F_InsertComma", #CASHPOINTS) + " Cash Points.";
+		close;
+	} else {
+		mes "[Freebies]";
+		mes "You have claim the free coin already.";
+		close;
+	}
+
+	OnInit:
+		waitingroom "Freebies Here",0;
+		end;
+}

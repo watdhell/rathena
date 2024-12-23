@@ -1,0 +1,18 @@
+//===== rAthena Script =======================================
+//= Online Users Counter NPC
+//===== Description: =========================================
+//= Online Users Counter NPC script.
+//============================================================
+
+prontera,150,198,4	script	Online Users	858,{
+	OnTimer5000:
+		delwaitingroom;
+		waitingroom "Online Users: " + getusers(1), 0;
+		initnpctimer;
+		end;
+
+	OnInit:
+		waitingroom "Online Users: " + getusers(1), 0;
+		initnpctimer;
+		end;
+}

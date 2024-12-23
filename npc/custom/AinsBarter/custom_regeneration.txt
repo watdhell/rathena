@@ -1,0 +1,340 @@
+//===== rAthena Script =======================================
+//= Regeneration NPC
+//===== Description: =========================================
+//= Regeneration NPC script (Pre-Renewal).
+//============================================================
+
+function	script	F_FasterRegen	{
+	.@hp = 2;		// Percent HP heal per-tick (Default: 2s per-tick)
+	.@sp = 1;		// Percent SP heal per-tick (Default: 2s per-tick)
+	.@range = 200;	// Range effect from NPC
+
+	getmapxy .@map$, .@x, .@y, BL_NPC, strnpcinfo(3);
+	
+	.@size = getareaunits(BL_PC, .@map$, (.@x - (.@range + 3)), .@y - .@range, (.@x + (.@range + 3)), .@y + .@range, .@aid);
+	
+	if (.@size > 0) {
+		for (.@i = 0; .@i < .@size; .@i++) {
+			if (attachrid(.@aid[.@i])) {
+				if (Hp && ((Hp != MaxHp) || (Sp != MaxSp)) && !getstatus(SC_WEIGHT50) && !getstatus(SC_WEIGHT90)) {
+					percentheal .@hp, .@sp;
+				}
+				detachrid;
+			}
+		}
+	}
+	return;
+}
+
+
+
+//============================================================
+// Duplicates
+//============================================================
+quiz_02,304,266,6	script	FasterRegen::custom_regeneration_quiz	-1,{
+	OnTimer2000:
+		callfunc "F_FasterRegen", "quiz_02";
+		initnpctimer;
+		end;
+	
+	OnInit:
+		initnpctimer;
+		end;
+}
+
+prontera,155,196,5	script	FasterRegen::custom_regeneration_prontera	-1,{
+	OnTimer2000:
+		callfunc "F_FasterRegen", "prontera";
+		initnpctimer;
+		end;
+	
+	OnInit:
+		initnpctimer;
+		end;
+}
+
+alberta,176,140,6	script	FasterRegen::custom_regeneration_alberta	-1,{
+	OnTimer2000:
+		callfunc "F_FasterRegen", "alberta";
+		initnpctimer;
+		end;
+	
+	OnInit:
+		initnpctimer;
+		end;
+}
+
+aldebaran,132,121,6	script	FasterRegen::custom_regeneration_aldebaran	-1,{
+	OnTimer2000:
+		callfunc "F_FasterRegen", "aldebaran";
+		initnpctimer;
+		end;
+	
+	OnInit:
+		initnpctimer;
+		end;
+}
+
+amatsu,194,138,6	script	FasterRegen::custom_regeneration_amatsu	-1,{
+	OnTimer2000:
+		callfunc "F_FasterRegen", "amatsu";
+		initnpctimer;
+		end;
+	
+	OnInit:
+		initnpctimer;
+		end;
+}
+
+ayothaya,205,201,6	script	FasterRegen::custom_regeneration_ayothaya	-1,{
+	OnTimer2000:
+		callfunc "F_FasterRegen", "ayothaya";
+		initnpctimer;
+		end;
+	
+	OnInit:
+		initnpctimer;
+		end;
+}
+
+brasilis,193,185,6	script	FasterRegen::custom_regeneration_brasilis	-1,{
+	OnTimer2000:
+		callfunc "F_FasterRegen", "brasilis";
+		initnpctimer;
+		end;
+	
+	OnInit:
+		initnpctimer;
+		end;
+}
+
+comodo,201,138,6	script	FasterRegen::custom_regeneration_comodo	-1,{
+	OnTimer2000:
+		callfunc "F_FasterRegen", "comodo";
+		initnpctimer;
+		end;
+	
+	OnInit:
+		initnpctimer;
+		end;
+}
+
+einbech,164,135,6	script	FasterRegen::custom_regeneration_einbech	-1,{
+	OnTimer2000:
+		callfunc "F_FasterRegen", "einbech";
+		initnpctimer;
+		end;
+	
+	OnInit:
+		initnpctimer;
+		end;
+}
+
+einbroch,169,316,6	script	FasterRegen::custom_regeneration_einbroch	-1,{
+	OnTimer2000:
+		callfunc "F_FasterRegen", "einbroch";
+		initnpctimer;
+		end;
+	
+	OnInit:
+		initnpctimer;
+		end;
+}
+
+geffen,116,102,6	script	FasterRegen::custom_regeneration_geffen	-1,{
+	OnTimer2000:
+		callfunc "F_FasterRegen", "geffen";
+		initnpctimer;
+		end;
+	
+	OnInit:
+		initnpctimer;
+		end;
+}
+
+gonryun,157,177,6	script	FasterRegen::custom_regeneration_gonryun	-1,{
+	OnTimer2000:
+		callfunc "F_FasterRegen", "gonryun";
+		initnpctimer;
+		end;
+	
+	OnInit:
+		initnpctimer;
+		end;
+}
+
+hugel,92,155,6	script	FasterRegen::custom_regeneration_hugel	-1,{
+	OnTimer2000:
+		callfunc "F_FasterRegen", "hugel";
+		initnpctimer;
+		end;
+	
+	OnInit:
+		initnpctimer;
+		end;
+}
+
+izlude,125,114,6	script	FasterRegen::custom_regeneration_izlude	-1,{
+	OnTimer2000:
+		callfunc "F_FasterRegen", "izlude";
+		initnpctimer;
+		end;
+	
+	OnInit:
+		initnpctimer;
+		end;
+}
+
+jawaii,213,163,6	script	FasterRegen::custom_regeneration_jawaii	-1,{
+	OnTimer2000:
+		callfunc "F_FasterRegen", "jawaii";
+		initnpctimer;
+		end;
+	
+	OnInit:
+		initnpctimer;
+		end;
+}
+
+lighthalzen,156,94,6	script	FasterRegen::custom_regeneration_lighthalzen	-1,{
+	OnTimer2000:
+		callfunc "F_FasterRegen", "lighthalzen";
+		initnpctimer;
+		end;
+	
+	OnInit:
+		initnpctimer;
+		end;
+}
+
+louyang,215,98,6	script	FasterRegen::custom_regeneration_louyang	-1,{
+	OnTimer2000:
+		callfunc "F_FasterRegen", "louyang";
+		initnpctimer;
+		end;
+	
+	OnInit:
+		initnpctimer;
+		end;
+}
+
+xmas,145,121,6	script	FasterRegen::custom_regeneration_xmas	-1,{
+	OnTimer2000:
+		callfunc "F_FasterRegen", "xmas";
+		initnpctimer;
+		end;
+	
+	OnInit:
+		initnpctimer;
+		end;
+}
+
+manuk,272,144,6	script	FasterRegen::custom_regeneration_manuk	-1,{
+	OnTimer2000:
+		callfunc "F_FasterRegen", "manuk";
+		initnpctimer;
+		end;
+	
+	OnInit:
+		initnpctimer;
+		end;
+}
+
+mid_camp,210,229,6	script	FasterRegen::custom_regeneration_mid_camp	-1,{
+	OnTimer2000:
+		callfunc "F_FasterRegen", "mid_camp";
+		initnpctimer;
+		end;
+	
+	OnInit:
+		initnpctimer;
+		end;
+}
+
+morocc,160,97,6	script	FasterRegen::custom_regeneration_morocc	-1,{
+	OnTimer2000:
+		callfunc "F_FasterRegen", "morocc";
+		initnpctimer;
+		end;
+	
+	OnInit:
+		initnpctimer;
+		end;
+}
+
+moscovia,233,198,6	script	FasterRegen::custom_regeneration_moscovia	-1,{
+	OnTimer2000:
+		callfunc "F_FasterRegen", "moscovia";
+		initnpctimer;
+		end;
+	
+	OnInit:
+		initnpctimer;
+		end;
+}
+
+payon,162,96,6	script	FasterRegen::custom_regeneration_payon	-1,{
+	OnTimer2000:
+		callfunc "F_FasterRegen", "payon";
+		initnpctimer;
+		end;
+	
+	OnInit:
+		initnpctimer;
+		end;
+}
+
+rachel,125,143,6	script	FasterRegen::custom_regeneration_rachel	-1,{
+	OnTimer2000:
+		callfunc "F_FasterRegen", "rachel";
+		initnpctimer;
+		end;
+	
+	OnInit:
+		initnpctimer;
+		end;
+}
+
+splendide,200,153,6	script	FasterRegen::custom_regeneration_splendide	-1,{
+	OnTimer2000:
+		callfunc "F_FasterRegen", "splendide";
+		initnpctimer;
+		end;
+	
+	OnInit:
+		initnpctimer;
+		end;
+}
+
+umbala,86,155,6	script	FasterRegen::custom_regeneration_umbala	-1,{
+	OnTimer2000:
+		callfunc "F_FasterRegen", "umbala";
+		initnpctimer;
+		end;
+	
+	OnInit:
+		initnpctimer;
+		end;
+}
+
+veins,214,132,6	script	FasterRegen::custom_regeneration_veins	-1,{
+	OnTimer2000:
+		callfunc "F_FasterRegen", "veins";
+		initnpctimer;
+		end;
+	
+	OnInit:
+		initnpctimer;
+		end;
+}
+
+yuno,154,180,6	script	FasterRegen::custom_regeneration_yuno	-1,{
+	OnTimer2000:
+		callfunc "F_FasterRegen", "yuno";
+		initnpctimer;
+		end;
+	
+	OnInit:
+		initnpctimer;
+		end;
+}

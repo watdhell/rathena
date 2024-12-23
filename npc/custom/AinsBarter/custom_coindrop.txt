@@ -1,0 +1,18 @@
+//===== rAthena Script =======================================
+//= Ragnarok Coin Drop
+//===== Description: =========================================
+//= Get Ragnarok Coin drop at a chance
+//= Drop rate chance formula: 
+//= Normal & Mini-Boss: 2% + (0.01% * Monster Level) (1 Ragnarok Coin)
+//= MVP: 100% (1~3 Ragnarok Coin)
+//============================================================
+
+-	script	RagnarokCoinDrop	-1,{
+	OnNPCKillEvent:		
+		if (getmonsterinfo(killedrid, MOB_MVPEXP)) {
+			getitem 1001258, rand(1,3);	// (MVP)
+		} else if (rand(10000) < 100 + getmonsterinfo(killedrid, MOB_LV)) {
+			getitem 1001258, 1;	// (Normal & Mini-Boss)
+		}
+		end;
+}

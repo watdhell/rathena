@@ -1,0 +1,27 @@
+//===== rAthena Script =======================================
+//= Clock NPC
+//===== Description: =========================================
+//= Clock NPC script.
+//============================================================
+
+prontera,156,199,4	script	Clock	HIDDEN_NPC,{
+	OnTimer1000:
+		delwaitingroom;
+		if (.format) {
+			waitingroom "      " + gettimestr("%T", 21), 0;
+		} else {
+			waitingroom "    " + gettimestr("%r", 21), 0;
+		}
+		initnpctimer;
+		end;
+
+	OnInit:
+		.format = 1; // Time Formats (1: 24-hour / 0: 12-hour)
+		if (.format) {
+			waitingroom "      " + gettimestr("%T", 21), 0;
+		} else {
+			waitingroom "    " + gettimestr("%r", 21), 0;
+		}
+		initnpctimer;
+		end;
+}

@@ -1,0 +1,234 @@
+//===== rAthena Script =======================================
+//= Custom Kafras
+//===== Description: =========================================
+//= Custom Kafras NPC script (Pre-Renewal).
+//= 1. Save respawn point
+//= 2. Open storage
+//= 3. Open Guild Warehouse
+//============================================================
+
+function	script	F_Custom_Kafra	{
+
+	.@StoragePrice = 40;		// Personal storage fee in Zeny
+	.@WarehousePrice = 1000;	// Guild Warehouse fee in Zeny
+
+	cutin "kh_ellisia",2;
+	mes "[Kafra Employee]";
+	mes "Welcome to the Kafra Corporation.";
+	mes "The Kafra Services are always here to support you.";
+	mes "So how can I be of service today?";
+	next;
+
+	switch(select("^1A66FFSave^000000:Open Storage ^777777[" + callfunc("F_InsertComma", .@StoragePrice) + " z]^000000:Open Guild Warehouse ^777777[" + callfunc("F_InsertComma", .@WarehousePrice) + " z]^000000:^777777Cancel^000000")) {
+		case 1:
+			mes "[Kafra Employee]";
+			if (getarg(2)) {
+				savepoint getarg(1), getarg(2), getarg(3);
+				mes "Your Respawn Point has been saved here in the " + getarg(0) + ".";
+				mes "Thank you.";
+			} else {
+				mes "I'm sorry but you can't set your respawn point in here.";
+			}
+			break;
+		case 2:
+			callfunc "F_KafStor", 0, .@StoragePrice, 0;
+			break;
+		case 3:
+			if (Zeny < .@WarehousePrice) {
+				mes "[Kafra Employee]";
+				mes "I am afraid you do not have enough money to settle the fee.";
+				mes "The fee is " + callfunc("F_InsertComma", .@WarehousePrice) + " z.";
+				close3;
+			}
+
+			if (Zeny < .@WarehousePrice) {
+				// Cheat prevention
+				end;
+			}
+
+			mes "[Kafra Employee]";
+			mes "I will open the guild storage for you then. Have a memorable time!";
+			close2;
+			cutin "", 255;
+
+			switch(guildopenstorage()) {
+				case GSTORAGE_STORAGE_ALREADY_OPEN:
+					mes "[Kafra Employee]";
+					mes "You are using your storage.";
+					mes "Please wait a while, then come back.";
+					close3;
+				case GSTORAGE_ALREADY_OPEN:
+					mes "[Kafra Employee]";
+					mes "The Guild Warehouse is being used right now.";
+					mes "Please wait a while, then come back.";
+					close3;
+				case GSTORAGE_NO_GUILD:
+					mes "[Kafra Employee]";
+					mes "You can't use this service if you're not in a guild!";
+					close3;
+				case GSTORAGE_NO_STORAGE:
+					mes "[Kafra Employee]";
+					mes "The guild does not have a guild storage.";
+					close3;
+				case GSTORAGE_NO_PERMISSION:
+					mes "[Kafra Employee]";
+					mes "You don't have permission to use the guild storage!";
+					close3;
+				default:
+					Zeny -= .@WarehousePrice;
+					end;
+			}
+			break;
+		case 4:
+			mes "[Kafra Employee]";
+			mes "^666666*Whew...*^000000";
+			mes "Great, because I'm actually on my break.";
+			break;
+	}
+	close3;
+}
+
+
+
+//============================================================
+// Duplicates
+//============================================================
+quiz_02,304,266,6	script	Kafra Employee::custom_kafra_shop	894,{
+	callfunc "F_Custom_Kafra", "-", "-", 0, 0;
+	end;
+}
+
+prontera,155,196,6	script	Kafra Employee::custom_kafra_prontera	894,{
+	callfunc "F_Custom_Kafra", "Town of Prontera", "prontera", 156, 188;
+	end;
+}
+
+alberta,176,140,6	script	Kafra Employee::custom_kafra_alberta	894,{
+	callfunc "F_Custom_Kafra", "Town of Alberta", "alberta", 179, 136;
+	end;
+}
+
+aldebaran,132,121,6	script	Kafra Employee::custom_kafra_aldebaran	894,{
+	callfunc "F_Custom_Kafra", "Town of Al De Baran", "aldebaran", 135, 117;
+	end;
+}
+
+amatsu,194,138,6	script	Kafra Employee::custom_kafra_amatsu	894,{
+	callfunc "F_Custom_Kafra", "Town of Amatsu", "amatsu", 197, 134;
+	end;
+}
+
+ayothaya,205,201,6	script	Kafra Employee::custom_kafra_ayothaya	894,{
+	callfunc "F_Custom_Kafra", "Town of Ayothaya", "ayothaya", 208, 197;
+	end;
+}
+
+brasilis,193,185,6	script	Kafra Employee::custom_kafra_brasilis	894,{
+	callfunc "F_Custom_Kafra", "Town of Brasilis", "brasilis", 196, 181;
+	end;
+}
+
+comodo,201,138,6	script	Kafra Employee::custom_kafra_comodo	894,{
+	callfunc "F_Custom_Kafra", "Town of Comodo", "comodo", 204, 134;
+	end;
+}
+
+einbech,164,135,6	script	Kafra Employee::custom_kafra_einbech	894,{
+	callfunc "F_Custom_Kafra", "Town of Einbech", "einbech", 167, 131;
+	end;
+}
+
+einbroch,169,316,6	script	Kafra Employee::custom_kafra_einbroch	894,{
+	callfunc "F_Custom_Kafra", "Town of Einbroch", "einbroch", 172, 312;
+	end;
+}
+
+geffen,116,102,6	script	Kafra Employee::custom_kafra_geffen	894,{
+	callfunc "F_Custom_Kafra", "Town of Geffen", "geffen", 119, 95;
+	end;
+}
+
+gonryun,157,177,6	script	Kafra Employee::custom_kafra_gonryun	894,{
+	callfunc "F_Custom_Kafra", "Town of Gonryun", "gonryun", 160, 173;
+	end;
+}
+
+hugel,92,155,6	script	Kafra Employee::custom_kafra_hugel	894,{
+	callfunc "F_Custom_Kafra", "Village of Hugel", "hugel", 95, 151;
+	end;
+}
+
+izlude,125,114,6	script	Kafra Employee::custom_kafra_izlude	894,{
+	callfunc "F_Custom_Kafra", "Town of Izlude", "izlude", 128, 110;
+	end;
+}
+
+jawaii,213,163,6	script	Kafra Employee::custom_kafra_jawaii	894,{
+	callfunc "F_Custom_Kafra", "Town of Jawaii", "jawaii", 216, 159;
+	end;
+}
+
+lighthalzen,156,94,6	script	Kafra Employee::custom_kafra_lighthalzen	894,{
+	callfunc "F_Custom_Kafra", "Town of Lighthalzen", "lighthalzen", 159, 90;
+	end;
+}
+
+louyang,215,98,6	script	Kafra Employee::custom_kafra_louyang	894,{
+	callfunc "F_Custom_Kafra", "Town of Louyang", "louyang", 218, 94;
+	end;
+}
+
+xmas,145,121,6	script	Kafra Employee::custom_kafra_xmas	894,{
+	callfunc "F_Custom_Kafra", "Town of Lutie", "xmas", 148, 117;
+	end;
+}
+
+manuk,272,144,6	script	Kafra Employee::custom_kafra_manuk	894,{
+	callfunc "F_Custom_Kafra", "Town of Manuk", "manuk", 275, 140;
+	end;
+}
+
+mid_camp,210,229,6	script	Kafra Employee::custom_kafra_mid_camp	894,{
+	callfunc "F_Custom_Kafra", "Midgarts Expedition Camp", "mid_camp", 213, 225;
+	end;
+}
+
+morocc,160,97,6	script	Kafra Employee::custom_kafra_morocc	894,{
+	callfunc "F_Custom_Kafra", "Town of Morroc", "morocc", 163, 93;
+	end;
+}
+
+moscovia,233,198,6	script	Kafra Employee::custom_kafra_moscovia	894,{
+	callfunc "F_Custom_Kafra", "Town of Moscovia", "moscovia", 236, 194;
+	end;
+}
+
+payon,162,96,6	script	Kafra Employee::custom_kafra_payon	894,{
+	callfunc "F_Custom_Kafra", "Town of Payon", "payon", 165, 92;
+	end;
+}
+
+rachel,125,143,6	script	Kafra Employee::custom_kafra_rachel	894,{
+	callfunc "F_Custom_Kafra", "Town of Rachel", "rachel", 128, 139;
+	end;
+}
+
+splendide,200,153,6	script	Kafra Employee::custom_kafra_splendide	894,{
+	callfunc "F_Custom_Kafra", "Town of Splendide", "splendide", 203, 149;
+	end;
+}
+
+umbala,86,155,6	script	Kafra Employee::custom_kafra_umbala	894,{
+	callfunc "F_Custom_Kafra", "Town of Umbala", "umbala", 89, 151;
+	end;
+}
+
+veins,214,132,6	script	Kafra Employee::custom_kafra_veins	894,{
+	callfunc "F_Custom_Kafra", "Town of Veins", "veins", 217, 128;
+	end;
+}
+
+yuno,154,180,6	script	Kafra Employee::custom_kafra_yuno	894,{
+	callfunc "F_Custom_Kafra", "Town of Yuno", "yuno", 157, 176;
+	end;
+}

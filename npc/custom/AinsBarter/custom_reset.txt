@@ -1,0 +1,229 @@
+//===== rAthena Script =======================================
+//= Reset NPC
+//===== Description: =========================================
+//= Advanced reset NPC script (Pre-Renewal).
+//============================================================
+
+prontera,150,194,5	script	Reset Girl	10125,{
+	//					51-60	61-70	 71-80	  81-90	   91-98	99		 TaeKwon Reset & Death Record
+	setarray .@Price,	500000,	1000000, 2000000, 3000000, 4000000, 5000000, 100000;
+
+	mes "[Reset NPC]";
+	mes "Hey, I can erase your memories.";
+	mes "Please select the service you want:";
+	next;
+
+	set .@i, (select("^FF3355Reset Stats / Skills:Reset TaeKwon:Reset Death Counter^000000:^777777Cancel^000000"));
+	mes "[Reset NPC]";
+
+	if (.@i == 4) {
+		mes "Okay then.";
+		close;
+	}
+
+	if (.@i == 1) {
+		if (BaseLevel < 51) {
+			mes "My service is free of charge for Base Level ^FF335550^000000 and below.";
+			mes "I'll reset both of your ^FF3355Stats^000000 and ^FF3355Skills^000000.";
+			mes "Do you want to proceed?";
+			next;
+			switch(select("Yes:No")) {
+				case 1:
+					ResetStatus
+					sc_end_class;
+					ResetSkill;
+					mes "[Reset NPC]";
+					mes "There you go!";
+					close;
+				case 2:
+					mes "[Reset NPC]";
+					mes "Okay then.";
+					close;
+			}
+			close;
+		} else {
+			if (BaseLevel < 61) {
+				.@x = 0;
+			} else if (BaseLevel < 71) {
+				.@x = 1;
+			} else if (BaseLevel < 81) {
+				.@x = 2;
+			} else if (BaseLevel < 91) {
+				.@x = 3;
+			} else if (BaseLevel < 99) {
+				.@x = 4;
+			} else {
+				.@x = 5;
+			}
+
+			mes "Reset Stats: ^FF3355" + callfunc("F_InsertComma", .@Price[.@x]) + "^000000^777777 z^000000";
+			mes "Reset Skills: ^FF3355" + callfunc("F_InsertComma", .@Price[.@x]) + "^000000^777777 z^000000";
+			mes "Reset Both: ^FF3355" + callfunc("F_InsertComma", .@Price[.@x] * 8 / 5) + "^000000^777777 z^000000";
+			mes "Please select the service you want:";
+			next;
+			set .@StatsSkills, (select("^FF3355Reset Stats:Reset Skills:Reset Both^000000:^777777Cancel^000000"));
+			mes "[Reset NPC]";
+			if (.@StatsSkills == 1) {
+				if (Zeny < .@Price[.@x]) {
+					mes "Sorry, you don't have enough Zeny.";
+					close;
+				}
+				mes "Are you sure want to reset your stats?";
+				next;
+				switch(select("Yes:^777777No^000000")) {
+					case 1:
+						Zeny -= .@Price[.@x];
+						ResetStatus;
+						mes "[Reset NPC]";
+						mes "There you go!";
+						close;
+					case 2:
+						mes "[Reset NPC]";
+						mes "Okay then.";
+						close;
+				}
+			} else if (.@StatsSkills == 2) {
+				if (Zeny < .@Price[.@x]) {
+					mes "Sorry, you don't have enough Zeny.";
+					close;
+				}
+				mes "Are you sure want to reset your skills?";
+				next;
+				switch(select("Yes:^777777No^000000")) {
+					case 1:
+						Zeny -= .@Price[.@x];
+						sc_end_class;
+						ResetSkill;
+						mes "[Reset NPC]";
+						mes "There you go!";
+						close;
+					case 2:
+						mes "[Reset NPC]";
+						mes "Okay then.";
+						close;
+				}
+			} else if (.@StatsSkills == 3) {
+				if (Zeny < .@Price[.@x] * 8 / 5) {
+					mes "Sorry, you don't have enough Zeny.";
+					close;
+				}
+				mes "Are you sure you want to reset your stats and skill?";
+				next;
+				switch(select("Yes:No")) {
+					case 1:
+						Zeny -= (.@Price[.@x] * 8 / 5);
+						ResetStatus
+						sc_end_class;
+						ResetSkill;
+						mes "[Reset NPC]";
+						mes "There you go!";
+						close;
+					case 2:
+						mes "[Reset NPC]";
+						mes "Okay then.";
+						close;
+				}
+			} else if (.@StatsSkills == 4) {
+				mes "Okay then.";
+			}
+		}
+	}
+
+	if (.@i == 2) {
+		if (Class == Job_Taekwon || Class == Job_Star_Gladiator) {
+			if (Class == Job_Taekwon) {
+				mes "Reset TaeKwon Mission: ^FF3355" + callfunc("F_InsertComma", .@Price[6]) + "^000000^777777 z^000000.";
+				mes "Are you sure you want to reset your TaeKwon misson?";
+			} else if (Class == Job_Star_Gladiator) {
+				mes "Reset Feeling and Hatred: ^FF3355" + callfunc("F_InsertComma", .@Price[6]) + "^000000^777777 z^000000.";
+				mes "Are you sure you want to reset your Feeling and Hatred?";
+			}
+			next;
+			switch(Class) {
+				case Job_Taekwon:
+					switch(select("Yes:^777777No^000000")) {
+						case 1:
+							mes "[Reset NPC]";
+							if (!TK_MISSION_ID) {
+								mes "Sorry, you don't have an active TaeKwon mission.";
+								close;
+							}
+							if (Zeny < .@Price[6]) {
+								mes "Sorry, you don't have enough Zeny.";
+								close;
+							}
+							Zeny -= .@Price[6];
+							set TK_MISSION_ID, 0;
+							set TK_MISSION_COUNT, 0;
+							mes "There you go!";
+							mes "You'll need to relog now.";
+							next;
+							atcommand "@kick " + strcharinfo(0);
+							break;
+						case 2:
+							mes "[Reset NPC]";
+							mes "Okay then.";
+							break;
+					}
+					break;
+				case Job_Star_Gladiator:
+					switch(select("Yes:^777777No^000000")) {
+						case 1:
+							mes "[Reset NPC]";
+							if (Zeny < .@Price[6]) {
+								mes "Sorry, you don't have enough Zeny.";
+								close;
+							}
+							if (PC_FEEL_MOON || PC_FEEL_SUN || PC_FEEL_STAR || PC_HATE_MOB_MOON || PC_HATE_MOB_SUN || PC_HATE_MOB_STAR) {
+								Zeny -= .@Price[6];
+								atcommand "@feelreset";
+								atcommand "@hatereset";
+								mes "There you go!";
+								mes "You'll need to relog now.";
+								next;
+								atcommand "@kick " + strcharinfo(0);
+							} else {
+								mes "Sorry, you don't have any active feeling or hatred.";
+							}
+							break;
+						case 2:
+							mes "[Reset NPC]";
+							mes "Okay then.";
+							break;
+					}
+					break;
+			}
+		} else {
+			mes "I'm sorry, this service only for TaeKwon class.";
+			close;
+		}
+	}
+
+	if (.@i == 3) {
+		mes "Reset Death Counter: ^FF3355" + callfunc("F_InsertComma", .@Price[6]) + "^000000^777777 z^000000.";
+		mes "Are you sure you want to reset your death counter?";
+		next;
+		switch(select("Yes:^777777No^000000")) {
+			case 1:
+				mes "[Reset NPC]";
+				if (!PC_DIE_COUNTER) {
+					mes "Sorry, you don't have any death record.";
+					close;
+				}
+				if (Zeny < .@Price[6]) {
+					mes "Sorry, you don't have enough Zeny.";
+					close;
+				}
+				Zeny -= .@Price[6];
+				set PC_DIE_COUNTER, 0;
+				mes "There you go!";
+				break;
+			case 2:
+				mes "[Reset NPC]";
+				mes "Okay then.";
+				break;
+		}
+	}
+
+	close;
+}

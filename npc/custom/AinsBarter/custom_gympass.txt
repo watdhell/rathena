@@ -1,0 +1,77 @@
+//===== rAthena Script =======================================
+//= Advanced Gym Pass NPC
+//===== By: ==================================================
+//= Exchange Gym Passes to learn "Enlarge Weight Limit"
+//============================================================
+
+prontera,147,211,4	script	Gym Guy	899,{
+	mes "[Gym Guy]";
+	mes "Hey, bring me ^1A66FF" + getitemname(7776) + "^000000 and I will increase your carrying capacity by ^FF0000200^000000 each (up to ^FF000010^000000 times)";
+	next;
+	switch(select("^1A66FFYes^000000:I need to restore my strength:^777777No^000000")) {
+		case 1:
+			if (gympassmemory < 10) {
+				if (!countitem(7776)) {
+					mes "[Gym Guy]";
+					mes "It appears that you have forgotten to bring your ^1A66FF" + getitemname(7776) + "^000000 with you";
+					close;
+				}
+				mes "[Gym Guy]";
+				mes "How many times do you want to increase your carrying capacity?";
+				next;
+				switch(select("Just Once:As many as possible")) {
+					case 1:
+						.@gympassleft = 10 - (gympassmemory + 1);
+						delitem 7776, 1;
+						gympassmemory += 1;
+						skill "ALL_INCCARRY", gympassmemory, SKILL_PERM_GRANT;
+						specialeffect2 EF_FOOD01;
+						mes "[Gym Guy]";
+						mes "Done!";
+						if (.@gympassleft) {
+							mes "You can increase your carrying capacity ^FF0000" + .@gympassleft + "^000000 more times.";
+						} else {
+							mes "Congratulations, you have reached the maximum limit.";
+						}
+						close;
+					case 2:
+						.@gympassleft = 10 - gympassmemory;
+						.@gympasscarry = countitem(7776);
+						.@gympasscost = (.@gympassleft >= .@gympasscarry) ? .@gympasscarry : .@gympassleft;
+						delitem 7776, .@gympasscost;
+						gympassmemory += .@gympasscost;
+						skill "ALL_INCCARRY", gympassmemory, SKILL_PERM_GRANT;
+						specialeffect2 EF_FOOD01;
+						mes "[Gym Guy]";
+						mes "Done!";
+						.@gympassremain = 10 - gympassmemory;
+						if (.@gympassremain) {
+							mes "You can increase your carrying capacity ^FF0000" + .@gympassremain + "^000000 more times.";
+						} else {
+							mes "Congratulations, you have reached the maximum limit.";
+						}
+						close;
+				}
+			} else {
+				mes "[Gym Guy]";
+				mes "You have reached the maximum limit, you can't increase your carrying capacity anymore.";
+				close;
+			}
+		case 2:
+			if (gympassmemory > 0) {
+				specialeffect2 EF_FOOD01;
+				mes "[Gym Guy]";
+				mes "Done, you should be able to carry more stuff with you.";
+				skill "ALL_INCCARRY", gympassmemory, SKILL_PERM_GRANT;
+				close;
+			} else {
+				mes "[Gym Guy]";
+				mes "You don't have any strength to restore.";
+				close;
+			}
+		case 3:
+			mes "[Gym Guy]";
+			mes "Great! You've wasted my time.";
+			close;
+	}
+}

@@ -1,0 +1,260 @@
+//===== rAthena Script ===========================================
+//= Healer NPC
+//===== Description: =============================================
+//= Advanced healer NPC script for (Pre-Renewal).
+//= Fee increase for every 10 level and for every buff activated.
+//================================================================
+
+-	script	Healer	-1,{
+
+	disable_items;
+
+	//=====  SETTINGS  =====//
+
+	.@Delay = 0;			// NPC delay (In seconds)
+
+	.@Time = 60000;			// Convert millisecond to minute [DO NOT TOUCH]
+	.@Time *= 10;			// Buff duration (In minutes)
+
+	.@Buffs = extrabuff;	// Check the database if the player has buff setting activated
+
+	// Check database for buffs using bit fields for efficiency
+	// e.g. 1,2,4,8,16,32,64,128,256,512,etc...
+	if (.@Buffs) {
+		.@Acolyte = extrabuff & 1;		// Acolyte Buff
+		.@Priest = extrabuff & 2;		// Priest Buff
+		.@HighPriest = extrabuff & 4;	// High Priest Buff
+		.@Blacksmith = extrabuff & 8;	// Blacksmith Buff
+		.@Crusader = extrabuff & 16;	// Crusader Buff
+		.@Sniper = extrabuff & 32;		// Sniper Buff
+		.@SoulLinker = extrabuff & 64;	// Soul Linker Buff
+
+		// Check how many buffs are activated to modify the fee
+		setarray .@BuffCount[1], .@Acolyte, .@Priest, .@HighPriest, .@Blacksmith, .@Crusader, .@Sniper, .@SoulLinker;
+		for (.@i = 1; .@i < getarraysize(.@BuffCount); .@i++) {
+			if (.@BuffCount[.@i]) {
+				.@FeeMod++;
+			}
+		}
+	}
+
+	.@BaseFee = 500 * ((BaseLevel / 10) + 1);	// Heal base fee (In Zeny)
+	.@TotalFee = .@BaseFee * (1 + .@FeeMod);	// Total Heal + Buff (if activated) fee (In Zeny)
+
+	//=====  END OF SETTINGS  =====//
+
+
+
+	if (@HD > gettimetick(2)) {
+		.@TimeLeft = @HD - gettimetick(2);
+		message strcharinfo(0), "Please wait " + callfunc("F_InsertPlural", .@TimeLeft, "second") + " to use Healer again.";
+		end;
+	}
+
+	switch(select("^1A66FFHeal" + ((.@Buffs) ? " + Buffs" : "") + "^000000 ^777777[" + callfunc("F_InsertComma", .@TotalFee) + " z]^000000:Settings:^777777Cancel^000000")) {
+		case 1:
+			if (Zeny < .@TotalFee) {
+				message strcharinfo(0), "Healing" + ((.@Buffs) ? " and Buffs" : "") + " costs " + callfunc("F_InsertComma", .@TotalFee) + " Zeny.";
+				end;
+			}
+
+			Zeny -= .@TotalFee;
+
+			// Auto-Repair
+			repairall;
+
+			// Auto-Identify
+			.@IdentifyTemp = identifyall(true);
+			if (.@IdentifyTemp) {
+				message strcharinfo(0), callfunc("F_InsertPlural", .@IdentifyTemp, "item") + " identified.";
+			}
+
+			// Remove Negative Status Effects
+			setarray .@debuffs, SC_STONE, SC_SLOWDOWN, SC_FREEZE, SC_SLEEP, SC_CURSE, SC_SILENCE, SC_CONFUSION, SC_BLIND, SC_BLEEDING, SC_DECREASEAGI, SC_LEXAETERNA, SC_POISON, SC_HALLUCINATION, SC_SLOWCAST, SC_CRITICALWOUND, SC_STRIPWEAPON, SC_STRIPARMOR, SC_STRIPHELM, SC_STRIPSHIELD, SC_CHANGEUNDEAD, SC_ORCISH, SC_BERSERK;
+
+			for (.@i = 0; .@i < getarraysize(.@debuffs); .@i++) {
+				sc_end .@debuffs[.@i];
+			}
+
+			// Buff
+			if (.@Buffs) {
+				// Acolyte
+				if (.@Acolyte) {
+					specialeffect2 EF_INCAGIDEX;
+					sc_start SC_BLESSING, .@Time, 10;
+					sc_start SC_INCREASEAGI, .@Time, 10;
+					sc_start SC_ANGELUS, .@Time, 10;
+				}
+
+				// Priest
+				if (.@Priest) {
+					specialeffect2 EF_MAGNIFICAT;
+					if (!.@HighPriest) {
+						sc_start SC_KYRIE, .@Time, 10;
+					}
+					sc_start SC_MAGNIFICAT, .@Time, 5;
+					sc_start SC_GLORIA, .@Time, 5;
+					sc_start SC_IMPOSITIO, .@Time, 5;
+					sc_start SC_SUFFRAGIUM, .@Time, 3;
+				}
+
+				// High Priest
+				if (.@HighPriest) {
+					specialeffect2 EF_ASSUMPTIO2;
+					sc_start SC_ASSUMPTIO, .@Time, 5;
+				}
+
+				// Blacksmith
+				if (.@Blacksmith) {
+					specialeffect2 EF_HASTEUP;
+					sc_start SC_ADRENALINE, .@Time, 5;
+					sc_start SC_ADRENALINE2, .@Time, 5;
+					sc_start SC_OVERTHRUST, .@Time, 5;
+					sc_start SC_WEAPONPERFECTION, .@Time, 5;
+				}
+
+				// Crusader
+				if (.@Crusader) {
+					specialeffect2 EF_PROVIDENCE;
+					sc_start SC_PROVIDENCE, .@Time, 5;
+				}
+
+				// Sniper
+				if (.@Sniper) {
+					specialeffect2 EF_PORTAL4;
+					sc_start SC_WINDWALK, .@Time, 10;
+				}
+
+				// Soul Linker Buff
+				if (.@SoulLinker) {
+					switch (BaseJob) {
+						case Job_Knight: set .@Spirit, 452; break;
+						case Job_Wizard: set .@Spirit, 453; break;
+						case Job_Priest: set .@Spirit, 454; break;
+						case Job_Assassin: set .@Spirit, 457; break;
+						case Job_Hunter: set .@Spirit, 460; break;
+						case Job_Blacksmith: set .@Spirit, 458; break;
+						case Job_Crusader: set .@Spirit, 450; break;
+						case Job_Sage: set .@Spirit, 449; break;
+						case Job_Monk: set .@Spirit, 447; break;
+						case Job_Rogue: set .@Spirit, 456; break;
+						case Job_Bard: case Job_Dancer: set .@Spirit, 455; break;
+						case Job_Alchemist: set .@Spirit, 445; break;
+						case Job_Soul_Linker: set .@Spirit, 461; break;
+						case Job_Star_Gladiator: set .@Spirit, 448; break;
+						case Job_SuperNovice: set .@Spirit, 451; break;
+						default:
+							if (Upper == 1 && BaseLevel < 70) {
+								set .@Spirit, 494;
+							}
+					}
+
+					if (.@Spirit) {
+						specialeffect2 EF_SOULLINK;
+						sc_start2 SC_SPIRIT, .@Time, 5, .@Spirit;
+					}
+
+					sc_start SC_KAIZEL, .@Time, 7;
+					sc_start SC_KAAHI, .@Time, 7;
+					sc_start SC_KAUPE, .@Time, 3;
+					sc_start SC_KAITE, .@Time, 7;
+				}
+			}
+
+			specialeffect2 EF_HEAL2;
+			percentheal 100,100;
+
+			if (.@Delay) {
+				@HD = gettimetick(2) + .@Delay;
+			}
+
+			end;
+		case 2:
+			.@ONText$ = "^1A66FFON^000000";
+			.@OFFText$ = "^FF3355OFF^000000";
+			.@EnableText$ = "^1A66FFEnable^000000";
+			.@DisableText$ = "^FF3355Disable^000000";
+
+			switch(select("Acolyte [" + ((.@Acolyte) ? .@ONText$ : .@OFFText$) + "]:Priest [" + ((.@Priest) ? .@ONText$ : .@OFFText$) + "]:High Priest [" + ((.@HighPriest) ? .@ONText$ : .@OFFText$) + "]:Blacksmith [" + ((.@Blacksmith) ? .@ONText$ : .@OFFText$) + "]:Crusader [" + ((.@Crusader) ? .@ONText$ : .@OFFText$) + "]:Sniper [" + ((.@Sniper) ? .@ONText$ : .@OFFText$) + "]:Soul Linker [" + ((.@SoulLinker) ? .@ONText$ : .@OFFText$) + "]:^1A66FFEnable All Buffs^000000:^FF3355Disable All Buffs^000000")) {
+				case 1:
+					if (select(((.@Acolyte) ? .@DisableText$ : .@EnableText$) + ":^777777Cancel^000000") == 2)
+						end;
+					set extrabuff, extrabuff + (.@Acolyte ? -1 : 1);
+					end;
+				case 2:
+					if (select(((.@Priest) ? .@DisableText$ : .@EnableText$) + ":^777777Cancel^000000") == 2)
+						end;
+					set extrabuff, extrabuff + (.@Priest ? -2 : 2);
+					end;
+				case 3:
+					if (select(((.@HighPriest) ? .@DisableText$ : .@EnableText$) + ":^777777Cancel^000000") == 2)
+						end;
+					set extrabuff, extrabuff + (.@HighPriest ? -4 : 4);
+					end;
+				case 4:
+					if (select(((.@Blacksmith) ? .@DisableText$ : .@EnableText$) + ":^777777Cancel^000000") == 2)
+						end;
+					set extrabuff, extrabuff + (.@Blacksmith ? -8 : 8);
+					end;
+				case 5:
+					if (select(((.@Crusader) ? .@DisableText$ : .@EnableText$) + ":^777777Cancel^000000") == 2)
+						end;
+					set extrabuff, extrabuff + (.@Crusader ? -16 : 16);
+					end;
+				case 6:
+					if (select(((.@Sniper) ? .@DisableText$ : .@EnableText$) + ":^777777Cancel^000000") == 2)
+						end;
+					set extrabuff, extrabuff + (.@Sniper ? -32 : 32);
+					end;
+				case 7:
+					if (select(((.@SoulLinker) ? .@DisableText$ : .@EnableText$) + ":^777777Cancel^000000") == 2)
+						end;
+					set extrabuff, extrabuff + (.@SoulLinker ? -64 : 64);
+					end;
+				case 8:
+					set extrabuff, 127;
+					end;
+				case 9:
+					set extrabuff, 0;
+					end;
+			}
+			end;
+		case 4:
+			end;
+	}
+
+	end;
+}
+
+
+
+//============================================================
+// Duplicates
+//============================================================
+alberta,182,140,4	duplicate(Healer)	Healer#alb	10383
+aldebaran,138,121,4	duplicate(Healer)	Healer#alde	10383
+amatsu,200,138,4	duplicate(Healer)	Healer#ama	10383
+ayothaya,211,201,4	duplicate(Healer)	Healer#ayo	10383
+brasilis,199,185,4	duplicate(Healer)	Healer#bra	10383
+comodo,207,138,4	duplicate(Healer)	Healer#com	10383
+einbech,170,135,4	duplicate(Healer)	Healer#einbe	10383
+einbroch,175,316,4	duplicate(Healer)	Healer#einbr	10383
+geffen,122,102,4	duplicate(Healer)	Healer#gef	10383
+gonryun,163,177,4	duplicate(Healer)	Healer#gon	10383
+hugel,98,155,4	duplicate(Healer)	Healer#hug	10383
+izlude,131,114,4	duplicate(Healer)	Healer#izl	10383
+jawaii,219,163,4	duplicate(Healer)	Healer#jaw	10383
+lighthalzen,162,94,4	duplicate(Healer)	Healer#lhz	10383
+louyang,221,98,4	duplicate(Healer)	Healer#lou	10383
+manuk,278,144,4	duplicate(Healer)	Healer#man	10383
+mid_camp,216,229,4	duplicate(Healer)	Healer#mid	10383
+morocc,166,97,4	duplicate(Healer)	Healer#mor	10383
+moscovia,239,198,4	duplicate(Healer)	Healer#mos	10383
+payon,168,96,4	duplicate(Healer)	Healer#pay	10383
+prontera,161,194,4	duplicate(Healer)	Healer#prt	10383
+rachel,131,143,4	duplicate(Healer)	Healer#rac	10383
+splendide,206,153,4	duplicate(Healer)	Healer#spl	10383
+umbala,92,155,4	duplicate(Healer)	Healer#umb	10383
+veins,220,132,4	duplicate(Healer)	Healer#ve	10383
+xmas,151,121,4	duplicate(Healer)	Healer#xmas	10383
+yuno,160,180,4	duplicate(Healer)	Healer#yuno	10383

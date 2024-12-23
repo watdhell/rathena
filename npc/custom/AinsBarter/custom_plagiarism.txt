@@ -1,0 +1,225 @@
+//===== rAthena Script =======================================
+//= Plagiarism NPC
+//===== Description: =========================================
+//= Plagiarism NPC script for Rogue class (Pre-Renewal).
+//============================================================
+
+prontera,145,206,4	script	Master Rogue	810,{
+
+	function S_Plagiarism;
+	
+	.PlagiarismFee = 100000;	// Plagiarism Fee (In Zeny)
+
+	mes "[Master Rogue]";
+	if (!getskilllv(225)) {
+		mes "You must have Plagiarism skill.";
+		close;
+	}
+	mes "Plagiarize Skill Fee: ^FF3355" + callfunc("F_InsertComma", .PlagiarismFee) + "^000000 ^777777z^000000";
+	mes "Please select the skill you want to copy:";
+	next;
+
+	switch(select("Swordman Class:Mage Class:Archer Class:Merchant Class:Thief Class:Acolyte Class:Extended Class:Other:^FF3355Remove Plagiarized Skill [FREE]^000000")) {
+		case 1:
+			switch(select("Swordman:Knight:Crusader")) {
+				case 1:
+					switch(select("Bash:Magnum Break")) {
+						case 1: S_Plagiarism(5); break;
+						case 2: S_Plagiarism(7); break;
+					}
+					break;
+				case 2:
+					switch(select("Bowling Bash")) {
+						case 1: S_Plagiarism(62); break;
+					}
+					break;
+				case 3:
+					switch(select("Shield Charge:Shield Boomerang:Holy Cross:Grand Cross")) {
+						case 1: S_Plagiarism(250); break;
+						case 2: S_Plagiarism(251); break;
+						case 3: S_Plagiarism(253); break;
+						case 4: S_Plagiarism(254); break;
+					}
+					break;
+			}
+			break;
+		case 2:
+			switch(select("Mage:Wizard")) {
+				case 1:
+					switch(select("Napalm Beat:Soul Strike:Cold Bolt:Frost Diver:Fire Ball:Fire Wall:Fire Bolt:Lightning Bolt:Thunder Storm")) {
+						case 1: S_Plagiarism(11); break;
+						case 2: S_Plagiarism(13); break;
+						case 3: S_Plagiarism(14); break;
+						case 4: S_Plagiarism(15); break;
+						case 5: S_Plagiarism(17); break;
+						case 6: S_Plagiarism(18); break;
+						case 7: S_Plagiarism(19); break;
+						case 8: S_Plagiarism(20); break;
+						case 9: S_Plagiarism(21); break;
+					}
+					break;
+				case 2:
+					switch(select("Fire Pillar:Sightrasher:Meteor Storm:Jupitel Thunder:Lord of Vermillion:Water Ball:Frost Nova:Storm Gust:Earth Spike:Heaven's Drive")) {
+						case 1: S_Plagiarism(80); break;
+						case 2: S_Plagiarism(81); break;
+						case 3: S_Plagiarism(83); break;
+						case 4: S_Plagiarism(84); break;
+						case 5: S_Plagiarism(85); break;
+						case 6: S_Plagiarism(86); break;
+						case 7: S_Plagiarism(88); break;
+						case 8: S_Plagiarism(89); break;
+						case 9: S_Plagiarism(90); break;
+						case 10: S_Plagiarism(91); break;
+					}
+					break;
+			}
+			break;
+		case 3:
+			switch(select("Archer:Hunter")) {
+				case 1:
+					switch(select("Double Strafing:Arrow Shower:Charge Arrow")) {
+						case 1: S_Plagiarism(46); break;
+						case 2: S_Plagiarism(47); break;
+						case 3: S_Plagiarism(148); break;
+					}
+					break;
+				case 2:
+					switch(select("Land Mine:Blast Mine:Claymore Trap")) {
+						case 1: S_Plagiarism(116); break;
+						case 2: S_Plagiarism(122); break;
+						case 3: S_Plagiarism(123); break;
+					}
+					break;
+			}
+			break;
+		case 4:
+			switch(select("Merchant:Alchemist")) {
+				case 1:
+					switch(select("Mammonite")) {
+						case 1: S_Plagiarism(42); break;
+					}
+					break;
+				case 2:
+					switch(select("Demonstration:Acid Terror")) {
+						case 1: S_Plagiarism(229); break;
+						case 2: S_Plagiarism(230); break;
+					}
+					break;
+			}
+			break;
+		case 5:
+			switch(select("Assassin")) {
+				case 1:
+					switch(select("Venom Splasher:Throw Venom Knife")) {
+						case 1: S_Plagiarism(141); break;
+						case 2: S_Plagiarism(1004); break;
+					}
+					break;
+			}
+			break;
+		case 6:
+			switch(select("Acolyte:Priest:Monk")) {
+				case 1:
+					switch(select("Ruwach:Heal:Holy Light")) {
+						case 1: S_Plagiarism(24); break;
+						case 2: S_Plagiarism(28); break;
+						case 3: S_Plagiarism(156); break;
+					}
+					break;
+				case 2:
+					switch(select("Resurrection:Aspersio:B.S Sacramenti:Sanctuary:Turn Undead:Magnus Exorcismus")) {
+						case 1: S_Plagiarism(54); break;
+						case 2: S_Plagiarism(68); break;
+						case 3: S_Plagiarism(69); break;
+						case 4: S_Plagiarism(70); break;
+						case 5: S_Plagiarism(77); break;
+						case 6: S_Plagiarism(79); break;
+					}
+					break;
+				case 3:
+					switch(select("Triple Attack:Investigate:Finger Offensive:Asura Strike")) {
+						case 1: S_Plagiarism(263); break;
+						case 2: S_Plagiarism(266); break;
+						case 3: S_Plagiarism(267); break;
+						case 4: S_Plagiarism(271); break;
+					}
+					break;
+			}
+			break;
+		case 7:
+			switch(select("Ninja:TaeKwon")) {
+				case 1:
+					switch(select("Flip Tatami:Haze Slasher:Shadow Slash:Flaming Petals:Blaze Shield:Exploding Dragon:Freezing Spear:Snow Flake Draft:Wind Blade:Lightning Jolt:First Wind")) {
+						case 1: S_Plagiarism(527); break;
+						case 2: S_Plagiarism(528); break;
+						case 3: S_Plagiarism(530); break;
+						case 4: S_Plagiarism(534); break;
+						case 5: S_Plagiarism(535); break;
+						case 6: S_Plagiarism(536); break;
+						case 7: S_Plagiarism(537); break;
+						case 8: S_Plagiarism(539); break;
+						case 9: S_Plagiarism(540); break;
+						case 10: S_Plagiarism(541); break;
+						case 11: S_Plagiarism(542); break;
+					}
+					break;
+				case 2:
+					switch(select("Flying Kick")) {
+						case 1: S_Plagiarism(421); break;
+					}
+					break;
+			}
+			break;
+		case 8:
+			switch(select("Throw Tomahawk")) {
+				case 1: S_Plagiarism(337); break;
+			}
+			break;
+		case 9:
+			mes "[Master Rogue]";
+			mes "Are you sure want to remove plagiarized skill?";
+			next;
+			switch(select("Yes:No")) {
+				case 1:
+					plagiarizeskillreset 1;
+					mes "[Master Rogue]";
+					mes "Done!";
+					break;
+				case 2:
+					mes "[Master Rogue]";
+					mes "Okay then.";
+					break;
+			}
+			break;
+	}
+	close;
+
+	function S_Plagiarism {
+		mes "[Master Rogue]";
+		mes "Plagiarize Skill Fee: ^FF3355" + callfunc("F_InsertComma", .PlagiarismFee) + "^000000 ^777777z^000000";
+		mes "Are you sure want to learn this skill?";
+		next;
+
+		switch(select("Yes:^777777No^000000")) {
+			mes "[Master Rogue]";
+			case 1:
+				if (Zeny < .PlagiarismFee) {
+					mes "Sorry, you don't have enough Zeny.";
+					close;
+				} else if (getskilllv(getarg(0))) {
+					mes "Sorry, you already have this skill learned.";
+					close;
+				}
+				Zeny -= .PlagiarismFee;
+				sc_end SC_PRESERVE;
+				plagiarizeskill getarg(0), getskilllv(225);
+				mes "Done, enjoy your new skill.";
+				break;
+			case 2:
+				mes "Okay then.";
+				break;
+		}
+		return;
+	}
+
+}

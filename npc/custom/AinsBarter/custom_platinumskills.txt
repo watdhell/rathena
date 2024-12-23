@@ -1,0 +1,21 @@
+//===== rAthena Script =======================================
+//= Platinum Skills NPC
+//===== Description: =========================================
+//= Platinum Skills NPC script (Pre-Renewal).
+//============================================================
+
+prontera,145,199,5	script	Platinum Skill	625,{
+	mes "[Platinum Skill NPC]";
+	mes "I can give you the special skills available to your job.";
+	mes "Would you like these skills now?";
+	next;
+	if (select("Yes:^777777No^000000") == 2) {
+		mes "[Platinum Skill NPC]";
+		mes "Have a nice day... >.>";
+		close;
+	}
+	callfunc "F_GetPlatinumSkills";
+	mes "[Platinum Skill NPC]";
+	mes "There you go!";
+	close;
+}

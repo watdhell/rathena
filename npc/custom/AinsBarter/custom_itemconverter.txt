@@ -1,0 +1,211 @@
+//===== rAthena Script =======================================
+//= Item Converter NPC
+//===== Description: =========================================
+//= Item converter these items: (Pre-Renewal)
+//= - 5 Rough Oridecon		-> Oridecon
+//= - 5 Rough Elunium		-> Elunium
+//= - 500 Trap				-> Trap Box
+//= - 500 Arrow				-> Quiver
+//= - 500 Iron Arrow		-> Iron Arrow Quiver
+//= - 500 Silver Arrow		-> Silver Arrow Quiver
+//= - 500 Fire Arrow		-> Fire Arrow Quiver
+//= - 500 Arrow of Wind		-> Wind Arrow Quiver
+//= - 500 Stone Arrow		-> Stone Arrow Quiver
+//= - 500 Crystal Arrow		-> Crystal Arrow Quiver
+//= - 500 Arrow of Shadow	-> Shadow Arrow Quiver
+//= - 500 Immaterial Arrow	-> Immaterial Arrow Quiver
+//= - 500 Rusty Arrow		-> Rusty Arrow Quiver
+//= - 500 Holy Arrow		-> Holy Arrow Quiver
+//= - 500 Steel Arrow		-> Steel Arrow Quiver
+//= - 500 Oridecon Arrow	-> Oridecon Arrow Quiver
+//============================================================
+
+quiz_02,314,265,4	script	Converter	58,{
+	mes "[Converter]";
+	mes "Do you want to convert your items in inventory?";
+	next;
+
+	set .@i, (select("^1A66FFYes^000000:What kind of items?:^777777No^000000"));
+	mes "[Converter]";
+
+	if (.@i == 1) {
+		// Rough Oridecon
+		.@Ori = countitem(756) / 5;
+
+		if (.@Ori) {
+			delitem 756, .@Ori * 5;
+			getitem 984, .@Ori;
+			dispbottom "Convert " + callfunc("F_InsertComma", .@Ori * 5) + " Rough Oridecons to " + callfunc("F_InsertPlural", .@Ori, "Oridecon") + ".";
+		}
+
+		// Rough Elunium
+		.@Elu = countitem(757) / 5;
+
+		if (.@Elu) {
+			delitem 757, .@Elu * 5;
+			getitem 985, .@Elu;
+			dispbottom "Convert " + callfunc("F_InsertComma", .@Elu * 5) + " Rough Eluniums to " + callfunc("F_InsertPlural", .@Elu, "Elunium") + ".";
+		}
+
+		// Trap
+		.@Trap = countitem(1065) / 500;
+
+		if (.@Trap) {
+			delitem 1065, .@Trap * 500;
+			getitem 23711, .@Trap;
+			dispbottom "Convert " + callfunc("F_InsertComma", .@Trap * 500) + " Traps to " + callfunc("F_InsertPlural", .@Trap, "Trap Box") + ".";
+		}
+
+		// Arrow
+		.@Arrow = countitem(1750) / 500;
+
+		if (.@Arrow) {
+			delitem 1750, .@Arrow * 500;
+			getitem 12004, .@Arrow;
+			dispbottom "Convert " + callfunc("F_InsertComma", .@Arrow * 500) + " Arrows to " + callfunc("F_InsertPlural", .@Arrow, "Quiver") + ".";
+		}
+
+		// Iron Arrow
+		.@IronArrow = countitem(1770) / 500;
+
+		if (.@IronArrow) {
+			delitem 1770, .@IronArrow * 500;
+			getitem 12005, .@IronArrow;
+			dispbottom "Convert " + callfunc("F_InsertComma", .@IronArrow * 500) + " Iron Arrows to " + callfunc("F_InsertPlural", .@IronArrow, "Iron Arrow Quiver") + ".";
+		}
+
+		// Silver Arrow
+		.@SilverArrow = countitem(1751) / 500;
+
+		if (.@SilverArrow) {
+			delitem 1751, .@SilverArrow * 500;
+			getitem 12009, .@SilverArrow;
+			dispbottom "Convert " + callfunc("F_InsertComma", .@SilverArrow * 500) + " Silver Arrows to " + callfunc("F_InsertPlural", .@SilverArrow, "Silver Arrow Quiver") + ".";
+		}
+
+		// Fire Arrow
+		.@FireArrow = countitem(1752) / 500;
+
+		if (.@FireArrow) {
+			delitem 1752, .@FireArrow * 500;
+			getitem 12008, .@FireArrow;
+			dispbottom "Convert " + callfunc("F_InsertComma", .@FireArrow * 500) + " Fire Arrows to " + callfunc("F_InsertPlural", .@FireArrow, "Fire Arrow Quiver") + ".";
+		}
+
+		// Arrow of Wind
+		.@ArrowOfWind = countitem(1755) / 500;
+
+		if (.@ArrowOfWind) {
+			delitem 1755, .@ArrowOfWind * 500;
+			getitem 12010, .@ArrowOfWind;
+			dispbottom "Convert " + callfunc("F_InsertComma", .@ArrowOfWind * 500) + " Arrows of Wind to " + callfunc("F_InsertPlural", .@ArrowOfWind, "Wind Arrow Quiver") + ".";
+		}
+
+		// Stone Arrow
+		.@StoneArrow = countitem(1756) / 500;
+
+		if (.@StoneArrow) {
+			delitem 1756, .@StoneArrow * 500;
+			getitem 12011, .@StoneArrow;
+			dispbottom "Convert " + callfunc("F_InsertComma", .@StoneArrow * 500) + " Stone Arrows to " + callfunc("F_InsertPlural", .@StoneArrow, "Stone Arrow Quiver") + ".";
+		}
+
+		// Crystal Arrow
+		.@CrystalArrow = countitem(1754) / 500;
+
+		if (.@CrystalArrow) {
+			delitem 1754, .@CrystalArrow * 500;
+			getitem 12012, .@CrystalArrow;
+			dispbottom "Convert " + callfunc("F_InsertComma", .@CrystalArrow * 500) + " Crystal Arrows to " + callfunc("F_InsertPlural", .@CrystalArrow, "Crystal Arrow Quiver") + ".";
+		}
+
+		// Arrow of Shadow
+		.@ArrowOfShadow = countitem(1767) / 500;
+
+		if (.@ArrowOfShadow) {
+			delitem 1767, .@ArrowOfShadow * 500;
+			getitem 12013, .@ArrowOfShadow;
+			dispbottom "Convert " + callfunc("F_InsertComma", .@ArrowOfShadow * 500) + " Arrows of Shadow Arrows to " + callfunc("F_InsertPlural", .@ArrowOfShadow, "Shadow Arrow Quiver") + ".";
+		}
+
+		// Immaterial Arrow
+		.@ImmaterialArrow = countitem(1757) / 500;
+
+		if (.@ImmaterialArrow) {
+			delitem 1757, .@ImmaterialArrow * 500;
+			getitem 12014, .@ImmaterialArrow;
+			dispbottom "Convert " + callfunc("F_InsertComma", .@ImmaterialArrow * 500) + " Immaterial Arrows to " + callfunc("F_InsertPlural", .@ImmaterialArrow, "Immaterial Arrow Quiver") + ".";
+		}
+
+		// Rusty Arrow
+		.@RustyArrow = countitem(1762) / 500;
+
+		if (.@RustyArrow) {
+			delitem 1762, .@RustyArrow * 500;
+			getitem 12015, .@RustyArrow;
+			dispbottom "Convert " + callfunc("F_InsertComma", .@RustyArrow * 500) + " Rusty Arrows to " + callfunc("F_InsertPlural", .@RustyArrow, "Rusty Arrow Quiver") + ".";
+		}
+
+		// Holy Arrow
+		.@HolyArrow = countitem(1772) / 500;
+
+		if (.@HolyArrow) {
+			delitem 1772, .@HolyArrow * 500;
+			getitem 12183, .@HolyArrow;
+			dispbottom "Convert " + callfunc("F_InsertComma", .@HolyArrow * 500) + " Holy Arrows to " + callfunc("F_InsertPlural", .@HolyArrow, "Holy Arrow Quiver") + ".";
+		}
+
+		// Steel Arrow
+		.@SteelArrow = countitem(1753) / 500;
+
+		if (.@SteelArrow) {
+			delitem 1753, .@SteelArrow * 500;
+			getitem 12006, .@SteelArrow;
+			dispbottom "Convert " + callfunc("F_InsertComma", .@SteelArrow * 500) + " Steel Arrows to " + callfunc("F_InsertPlural", .@SteelArrow, "Steel Arrow Quiver") + ".";
+		}
+
+		// Oridecon Arrow
+		.@OrideconArrow = countitem(1765) / 500;
+
+		if (.@OrideconArrow) {
+			delitem 1765, .@OrideconArrow * 500;
+			getitem 12007, .@OrideconArrow;
+			dispbottom "Convert " + callfunc("F_InsertComma", .@OrideconArrow * 500) + " Oridecon Arrows to " + callfunc("F_InsertPlural", .@OrideconArrow, "Oridecon Arrow Quiver") + ".";
+		}
+		
+		if ((.@Ori + .@Elu + .@Trap + .@Arrow + .@IronArrow + .@SilverArrow + .@FireArrow + .@ArrowOfWind + .@StoneArrow + .@CrystalArrow + .@ArrowOfShadow + .@ImmaterialArrow + .@RustyArrow + .@HolyArrow + .@SteelArrow + .@OrideconArrow) > 0) {
+			specialeffect2 EF_REFINEOK;
+		} else {
+			mes "You don't have any item I can convert right now.";
+			close;
+		}
+
+		mes "Done";
+		close;
+	}
+
+	if (.@i == 2) {
+		mes "^FF33555 Rough Oridecons^000000 > ^1A66FFOridecon^000000";
+		mes "^FF33555 Rough Eluniums^000000 > ^1A66FFElunium^000000";
+		mes "^FF3355500 Traps^000000 > ^1A66FFTrap Box^000000";
+		mes "^FF3355500 Arrows^000000 > ^1A66FFQuiver^000000";
+		mes "^FF3355500 Iron Arrows^000000 > ^1A66FFIron Arrow Quiver^000000";
+		mes "^FF3355500 Silver Arrows^000000 > ^1A66FFSilver Arrow Quiver^000000";
+		mes "^FF3355500 Fire Arrows^000000 > ^1A66FFFire Arrow Quiver^000000";
+		mes "^FF3355500 Arrow of Winds^000000 > ^1A66FFWind Arrow Quiver^000000";
+		mes "^FF3355500 Stone Arrows^000000 > ^1A66FFStone Arrow Quiver^000000";
+		mes "^FF3355500 Crystal Arrows^000000 > ^1A66FFCrystal Arrow Quiver^000000";
+		mes "^FF3355500 Arrow of Shadows^000000 > ^1A66FFShadow Arrow Quiver^000000";
+		mes "^FF3355500 Immaterial Arrows^000000 > ^1A66FFImmaterial Arrow Quiver^000000";
+		mes "^FF3355500 Rusty Arrows^000000 > ^1A66FFRusty Arrow Quiver^000000";
+		mes "^FF3355500 Holy Arrows^000000 > ^1A66FFHoly Arrow Quiver^000000";
+		mes "^FF3355500 Steel Arrows^000000 > ^1A66FFSteel Arrow Quiver^000000";
+		mes "^FF3355500 Oridecon Arrows^000000 > ^1A66FFOridecon Arrow Quiver^000000";
+		close;
+	}
+
+	if (.@i == 3) {
+		mes "Okay then.";
+		close;
+	}
+}

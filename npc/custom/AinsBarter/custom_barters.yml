@@ -1,0 +1,327 @@
+Header:
+  Type: BARTER_DB
+  Version: 1
+
+Body:
+  - Name: Mineralogist
+    Map: quiz_02
+    X: 317
+    Y: 265
+    Direction: SouthWest
+    Sprite: 4_M_JOB_BLACKSMITH
+    Items:
+      - Index: 0
+        Item: Enriched_Oridecon
+        Zeny: 100000
+        RequiredItems:
+          - Index: 0
+            Item: Oridecon
+            Amount: 10
+      - Index: 1
+        Item: Enriched_Elunium
+        Zeny: 100000
+        RequiredItems:
+          - Index: 0
+            Item: Elunium
+            Amount: 10
+      - Index: 4
+        Item: Star_Crumb
+        Zeny: 5000
+        RequiredItems:
+          - Index: 0
+            Item: Sparkling_Dust
+            Amount: 10
+      - Index: 5
+        Item: Iron
+        Zeny: 1000
+        RequiredItems:
+          - Index: 0
+            Item: Iron_Ore
+            Amount: 2
+
+
+
+  - Name: Herbalist
+    Map: quiz_02
+    X: 320
+    Y: 265
+    Direction: SouthWest
+    Sprite: 2_M_PHARMACIST
+    Items:
+      - Index: 0
+        Item: Red_Potion
+        Zeny: 3
+        RequiredItems:
+          - Index: 0
+            Item: Red_Herb
+            Amount: 2
+          - Index: 1
+            Item: Empty_Bottle
+            Amount: 1
+      - Index: 1
+        Item: Orange_Potion
+        Zeny: 5
+        RequiredItems:
+          - Index: 0
+            Item: Red_Herb
+            Amount: 1
+          - Index: 1
+            Item: Yellow_Herb
+            Amount: 1
+          - Index: 2
+            Item: Empty_Bottle
+            Amount: 1
+      - Index: 2
+        Item: Yellow_Potion
+        Zeny: 10
+        RequiredItems:
+          - Index: 0
+            Item: Yellow_Herb
+            Amount: 2
+          - Index: 1
+            Item: Empty_Bottle
+            Amount: 1
+      - Index: 3
+        Item: White_Potion
+        Zeny: 20
+        RequiredItems:
+          - Index: 0
+            Item: White_herb
+            Amount: 2
+          - Index: 1
+            Item: Empty_Bottle
+            Amount: 1
+      - Index: 4
+        Item: Blue_Potion
+        Zeny: 30
+        RequiredItems:
+          - Index: 0
+            Item: Blue_Herb
+            Amount: 2
+          - Index: 1
+            Item: Empty_Bottle
+            Amount: 1
+            Amount: 1
+      - Index: 5
+        Item: Green_Potion
+        Zeny: 3
+        RequiredItems:
+          - Index: 0
+            Item: Green_Herb
+            Amount: 2
+          - Index: 1
+            Item: Empty_Bottle
+            Amount: 1
+      - Index: 6
+        Item: Apple_Juice
+        Zeny: 3
+        RequiredItems:
+          - Index: 0
+            Item: Apple
+            Amount: 1
+          - Index: 1
+            Item: Empty_Potion
+            Amount: 1
+      - Index: 7
+        Item: Banana_Juice
+        Zeny: 3
+        RequiredItems:
+          - Index: 0
+            Item: Banana
+            Amount: 1
+          - Index: 1
+            Item: Empty_Potion
+            Amount: 1
+      - Index: 8
+        Item: Carrot_Juice
+        Zeny: 3
+        RequiredItems:
+          - Index: 0
+            Item: Carrot
+            Amount: 1
+          - Index: 1
+            Item: Empty_Potion
+            Amount: 1
+      - Index: 9
+        Item: Grape_Juice
+        Zeny: 3
+        RequiredItems:
+          - Index: 0
+            Item: Grape
+            Amount: 1
+          - Index: 1
+            Item: Empty_Potion
+            Amount: 1
+      - Index: 10
+        Item: Counteragent
+        Zeny: 3000
+        RequiredItems:
+          - Index: 0
+            Item: Alchol
+            Amount: 1
+          - Index: 1
+            Item: Detrimindexta
+            Amount: 1
+          - Index: 2
+            Item: Empty_Potion
+            Amount: 1
+      - Index: 11
+        Item: Mixture
+        Zeny: 4000
+        RequiredItems:
+          - Index: 0
+            Item: Alchol
+            Amount: 1
+          - Index: 1
+            Item: Karvodailnirol
+            Amount: 1
+          - Index: 2
+            Item: Empty_Potion
+            Amount: 1
+      - Index: 12
+        Item: Light_Center_Pot
+        Zeny: 500
+        RequiredItems:
+          - Index: 0
+            Item: Center_Potion
+            Amount: 1
+          - Index: 1
+            Item: Starsand_Of_Witch
+            Amount: 1
+          - Index: 2
+            Item: Empty_Potion
+            Amount: 1
+      - Index: 13
+        Item: Light_Awakening_Pot
+        Zeny: 750
+        RequiredItems:
+          - Index: 0
+            Item: Awakening_Potion
+            Amount: 1
+          - Index: 1
+            Item: Starsand_Of_Witch
+            Amount: 1
+          - Index: 2
+            Item: Empty_Potion
+            Amount: 1
+      - Index: 14
+        Item: Light_Berserk_Pot
+        Zeny: 1000
+        RequiredItems:
+          - Index: 0
+            Item: Berserk_Potion
+            Amount: 1
+          - Index: 1
+            Item: Starsand_Of_Witch
+            Amount: 1
+          - Index: 2
+            Item: Empty_Potion
+            Amount: 1
+
+
+
+  # - Name: Quiver
+  #   Map: quiz_02
+  #   X: 320
+  #   Y: 265
+  #   Direction: SouthWest
+  #   Sprite: 4_EP18_MERCHANT
+  #   Items:
+  #     - Index: 0
+  #       Item: Booby_Trap_Box
+  #       Zeny: 500
+  #       RequiredItems:
+  #         - Index: 0
+  #           Item: Booby_Trap
+  #           Amount: 500
+  #     - Index: 1
+  #       Item: Arrow_Container
+  #       Zeny: 500
+  #       RequiredItems:
+  #         - Index: 0
+  #           Item: Arrow
+  #           Amount: 500
+  #     - Index: 2
+  #       Item: Iron_Arrow_Container
+  #       Zeny: 500
+  #       RequiredItems:
+  #         - Index: 0
+  #           Item: Iron_Arrow
+  #           Amount: 500
+  #     - Index: 3
+  #       Item: Silver_Arrow_Container
+  #       Zeny: 500
+  #       RequiredItems:
+  #         - Index: 0
+  #           Item: Silver_Arrow
+  #           Amount: 500
+  #     - Index: 4
+  #       Item: Fire_Arrow_Container
+  #       Zeny: 500
+  #       RequiredItems:
+  #         - Index: 0
+  #           Item: Fire_Arrow
+  #           Amount: 500
+  #     - Index: 5
+  #       Item: Wind_Arrow_Container
+  #       Zeny: 500
+  #       RequiredItems:
+  #         - Index: 0
+  #           Item: Arrow_Of_Wind
+  #           Amount: 500
+  #     - Index: 6
+  #       Item: Stone_Arrow_Container
+  #       Zeny: 500
+  #       RequiredItems:
+  #         - Index: 0
+  #           Item: Stone_Arrow
+  #           Amount: 500
+  #     - Index: 7
+  #       Item: Crystal_Arrow_Container
+  #       Zeny: 500
+  #       RequiredItems:
+  #         - Index: 0
+  #           Item: Crystal_Arrow
+  #           Amount: 500
+  #     - Index: 8
+  #       Item: Shadow_Arrow_Container
+  #       Zeny: 500
+  #       RequiredItems:
+  #         - Index: 0
+  #           Item: Arrow_Of_Shadow
+  #           Amount: 500
+  #     - Index: 9
+  #       Item: Imma_Arrow_Container
+  #       Zeny: 500
+  #       RequiredItems:
+  #         - Index: 0
+  #           Item: Immatrial_Arrow
+  #           Amount: 500
+  #     - Index: 10
+  #       Item: Rusty_Arrow_Container
+  #       Zeny: 500
+  #       RequiredItems:
+  #         - Index: 0
+  #           Item: Rusty_Arrow
+  #           Amount: 500
+  #     - Index: 11
+  #       Item: Holy_Arrow_Quiver
+  #       Zeny: 500
+  #       RequiredItems:
+  #         - Index: 0
+  #           Item: Holy_Arrow
+  #           Amount: 500
+  #     - Index: 12
+  #       Item: Steel_Arrow_Container
+  #       Zeny: 500
+  #       RequiredItems:
+  #         - Index: 0
+  #           Item: Steel_Arrow
+  #           Amount: 500
+  #     - Index: 13
+  #       Item: Ori_Arrow_Container
+  #       Zeny: 500
+  #       RequiredItems:
+  #         - Index: 0
+  #           Item: Oridecon_Arrow
+  #           Amount: 500

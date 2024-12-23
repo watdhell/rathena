@@ -1,0 +1,140 @@
+//===== rAthena Script ======================================= 
+//= Advanced Enchant NPC
+//===== Description: ========================================= 
+//= Advanced Enchant NPC script (Pre-Renewal).
+//= Random option db db\import\item_randomopt_db.yml
+//= Random option group \db\import\item_randomopt_group.yml
+//============================================================
+
+quiz_02,298,262,6	script	Enchanter	619,{
+
+	.@EnchantFee = 2000000;	// Enchant base fee (In Zeny)
+	.@SlotFee = 500000;		// Per-slot fee (In Zeny)
+
+	disable_items;
+	mes "[Enchanter]";
+	mes "Do you want to enchant your equipment?";
+	mes "Base Fee: ^00A000" + callfunc("F_InsertComma", .@EnchantFee) + "^000000^777777 z^000000";
+	mes "Per-Slot Fee: ^00A000" + callfunc("F_InsertComma", .@SlotFee) + "^000000^777777 z^000000";
+	next;
+	switch(select("^1A66FFYes^000000:What is this?:^777777Cancel^000000")) {
+		case 1:
+			setarray .@indices[1], EQI_HEAD_TOP, EQI_ARMOR, EQI_HAND_L, EQI_HAND_R, EQI_GARMENT, EQI_SHOES, EQI_ACC_L, EQI_ACC_R;
+			for (.@i = 1; .@i < getarraysize(.@indices); .@i++) {
+				if (getequipisequiped(.@indices[.@i])) {
+					if (!(.@indices[.@i] == EQI_HAND_L && getiteminfo(getequipid(.@indices[.@i]), ITEMINFO_TYPE) == IT_ARMOR)) {
+						.@EquipSlot = (getequipcardid(.@indices[.@i],0) == 255) ? 0 : getitemslots(getequipid(.@indices[.@i]));
+						set .@menu$, .@menu$ + F_getpositionname(.@indices[.@i]) + " - ^1A66FF" + getequipname(.@indices[.@i]) + " " + ((.@EquipSlot) ? "[" + .@EquipSlot + "]" : "") + "^000000";
+						set .@equipped, 1;
+					}
+				}
+				set .@menu$, .@menu$ + ":";
+			}
+
+			if (!.@equipped) {
+				mes "[Enchanter]";
+				mes "You're not wearing any equip that I can enchant.";
+				close;
+			}
+
+			set .@part, .@indices[select(.@menu$)];
+			if (!getequipisequiped(.@part)) {
+				mes "[Enchanter]";
+				mes "Your not wearing anything there.";
+				close;
+			}
+			clear;
+
+			// Equipment data
+			.@EquipID = getequipid(.@part);
+			.@EquipSlot = (getequipcardid(.@part,0) == 255) ? 0 : getitemslots(.@EquipID);
+			.@EquipRefine = getequiprefinerycnt(.@part);
+			setarray .@Card[0], getequipcardid(.@part,0), getequipcardid(.@part,1), getequipcardid(.@part,2), getequipcardid(.@part,3);
+			.@TotalCost = .@EnchantFee + (.@SlotFee * .@EquipSlot);
+
+			getinventorylist;
+			for (.@i = 0; .@i < @inventorylist_count; .@i++) {
+				if (@inventorylist_expire[.@i]) {
+					if (.@EquipID == @inventorylist_id[.@i]) {
+						mes "[Enchanter]";
+						mes "Your equipment ^FF3355"+ getitemname(getequipid(.@part)) + "^000000 has ^FF3355expired time^000000. I can't enchant this equipment.";
+						close;
+					}
+				}
+			}
+
+			mes "[Enchanter]";
+			mes "Are you sure want to enchant ^1A66FF" + getequipname(.@part) + "" + ((.@EquipSlot) ? " [" + .@EquipSlot + "]" : "") + "^000000?";
+			mes "Total Price: ^00A000" + callfunc("F_InsertComma", .@TotalCost) + "^000000^777777 z^000000.";
+			next;
+
+			if (select("^1A66FFYes, I am^000000:^777777Never mind^000000") == 2) {
+				mes "[Enchanter]";
+				mes "Very well. Return at once if you seek my services.";
+				close;
+			}
+
+			if (Zeny < .@TotalCost) {
+				mes "[Enchanter]";
+				mes "You don't have enough zeny.";
+				close;
+			}
+
+			switch (.@part) {
+				// Go to db\import\item_randomopt_group.yml for random option group database
+				case EQI_HEAD_TOP:
+				case EQI_ARMOR: randomoptgroup(1); break;
+				case EQI_GARMENT:
+				case EQI_SHOES: randomoptgroup(2); break;
+				case EQI_ACC_L:
+				case EQI_ACC_R: randomoptgroup(3); break;
+				case EQI_HAND_L:
+				case EQI_HAND_R:
+					mes "[Enchanter]";
+					mes "What kind of enchant do you want?";
+					mes "Special: Combination of Physical & Magic";
+					next;
+					switch(select("^FF3355Melee^000000:^1A66FFRange^000000:^FF69B4Magic^000000:^806C00Special^000000:^777777Cancel^000000")) {
+						case 1:
+							randomoptgroup(4);
+							break;
+						case 2:
+							randomoptgroup(5);
+							break;
+						case 3:
+							randomoptgroup(6);
+							break;
+						case 4:
+							randomoptgroup(7);
+							break;
+						case 5:
+							mes "[Enchanter]";
+							mes "Very well. Return at once if you seek my services.";
+							close;
+					}
+					break;
+			}
+
+			specialeffect2 EF_REFINEOK;
+			set Zeny, Zeny - .@TotalCost;
+			delequip(.@part);
+			getitem3 .@EquipID,1,1,.@EquipRefine,0,.@Card[0],.@Card[1],.@Card[2],.@Card[3],.@opt_id,.@opt_value,.@opt_param;
+
+			mes "[Enchanter]";
+			mes "The process was a success.";
+			mes "Here is your equipment.";
+			mes "Farewell.";
+			close;
+		case 2:
+			mes "[Enchanter]";
+			mes "I can enchant your equipment with random stats and effects.";
+			mes "I can enchant ^1A66FFTop Headgears^000000, ^1A66FFArmors^000000, ^1A66FFWeapons^000000, ^1A66FFGarments^000000, ^1A66FFFootgears^000000 and ^1A66FFAccesories^000000";
+			close;
+		case 3:
+			clear;
+			mes "[Enchanter]";
+			mes "Very well. Return at once if you seek my services.";
+			close;
+	}
+	close;
+}

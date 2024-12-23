@@ -1,0 +1,84 @@
+//===== rAthena Script =======================================
+//= Ragnarok Coin Trader NPC
+//===== Description: =========================================
+//= Ragnarok coin trader NPC script (Pre-Renewal).
+//============================================================
+
+prontera,162,203,6	script	Ragnarok Coin Trader	900,{
+
+	.@ROCoinID = 1001258;						// Coin Item ID
+	.@ROCoinName$ = getitemname(.@ROCoinID);	// Coin Item Name
+	.@ROCoinAmount = countitem(.@ROCoinID);		// Amount of coin in inventory
+
+	mes "[Ragnarok Coin Trader]";
+	mes "Do you want to trade Ragnarok Coins into Cash Points or vice versa?";
+	mes "You have ^1A66FF" + callfunc("F_InsertComma", .@ROCoinAmount) + "^000000 " + ((.@ROCoinAmount != 1) ? callfunc("F_GetPlural", .@ROCoinName$) : .@ROCoinName$) + " and ^1A66FF" + callfunc("F_InsertComma", #CASHPOINTS) + "^000000 Cash Points.";
+	next;
+	switch(select("Ragnarok Coins  >  Cash Points:Cash Points  >  Ragnarok Coins:^777777Cancel^000000")) {
+		case 1:
+			mes "[Ragnarok Coin Trader]";
+			mes "How many " + .@ROCoinName$ + " do you want to trade?";
+			mes "^FF0000Max: " + .@ROCoinAmount + "^000000";
+			mes "^FF0000(The amount of " + .@ROCoinName$ + " you have in your inventory)^000000";
+			next;
+
+			input .@cointrade, 0, .@ROCoinAmount;
+			if (!.@cointrade || .@cointrade > .@ROCoinAmount) {
+				mes "[Ragnarok Coin Trader]";
+				mes "Stop wasting my time!";
+				close;
+			}
+
+			if (.@cointrade <= .@ROCoinAmount) {
+				delitem .@ROCoinID, .@cointrade;
+				set #CASHPOINTS, #CASHPOINTS + .@cointrade;
+				mes "[Ragnarok Coin Trader]";
+				mes "You've got ^00A000" + callfunc("F_InsertComma", .@cointrade) + "^000000 Cash Points.";
+				mes "Total: ^00A000" + callfunc("F_InsertComma", #CASHPOINTS) + "^000000 Cash Points.";
+				dispbottom "You've got " + callfunc("F_InsertComma", .@cointrade) + " Cash Points. Total: " + callfunc("F_InsertComma", #CASHPOINTS) + " Cash Points.";
+				close;
+			}
+			break;
+		case 2:
+			.@ROCoinAmountLeft = (30000 - .@ROCoinAmount);
+			if (!checkweight(.@ROCoinID, max(1, .@ROCoinAmountLeft))) {
+				mes "[Ragnarok Coin Trader]";
+				mes "You're carrying too much items in your inventory.";
+				close;
+			}
+
+			mes "[Ragnarok Coin Trader]";
+			mes "How many Cash Points do you want to trade?";
+			if (.@ROCoinAmountLeft < #CASHPOINTS) {
+				mes "^FF0000Max: " + .@ROCoinAmountLeft + "^000000";
+				mes "^FF0000(The maximum amount of " + callfunc("F_GetPlural", .@ROCoinName$) + " left you can carry in your inventory)^000000";
+			} else {
+				mes "^FF0000Max: " + #CASHPOINTS + "^000000";
+				mes "^FF0000(The amount of Cash Points you have right now.)^000000";
+			}
+			next;
+
+			input .@cashtrade, 0, min(.@ROCoinAmountLeft, min(#CASHPOINTS, 30000));
+			if (!.@cashtrade || .@cashtrade > #CASHPOINTS) {
+				mes "[Ragnarok Coin Trader]";
+				mes "Stop wasting my time!";
+				close;
+			}
+
+			if (.@cashtrade <= #CASHPOINTS) {
+				set #CASHPOINTS, #CASHPOINTS - .@cashtrade;
+				getitem .@ROCoinID, .@cashtrade;
+				mes "[Ragnarok Coin Trader]";
+				mes "You've got ^00A000" + callfunc("F_InsertComma", .@cashtrade) + "^000000 " + ((.@cashtrade != 1) ? callfunc("F_GetPlural", .@ROCoinName$) : .@ROCoinName$) + ".";
+				mes "Cash Points: ^00A000" + callfunc("F_InsertComma", #CASHPOINTS) + "^000000.";
+				dispbottom "You've got " + callfunc("F_InsertComma", .@cashtrade) + " " + ((.@cashtrade != 1) ? callfunc("F_GetPlural", .@ROCoinName$) : .@ROCoinName$) + ". Cash Points: " + callfunc("F_InsertComma", #CASHPOINTS) + ".";
+				close;
+			}
+			break;
+		case 3:
+			mes "[Ragnarok Coin Trader]";
+			mes "Stop wasting my time!";
+			break;
+	}
+	close;
+}

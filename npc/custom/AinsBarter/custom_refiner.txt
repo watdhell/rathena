@@ -1,0 +1,205 @@
+//===== rAthena Script =======================================
+//= Custom Advanced Refiner NPC
+//===== Description: =========================================
+//= Custom Advanced Refiner NPC (Pre-Renewal).
+//============================================================
+
+quiz_02,301,264,6	script	Master Smith	2_M_OLDBLSMITH,{
+
+	disable_items;
+	.@npc_name$ = "Master Smith";
+
+	mes "[" + .@npc_name$ + "]";
+	mes "I'm a Master Smith";
+	mes "I can refine all kinds of equipment with special material.";
+	mes "So, what you want to refine?";
+	next;
+
+	setarray .@indices[1], EQI_HEAD_TOP, EQI_ARMOR, EQI_HAND_L, EQI_HAND_R, EQI_GARMENT, EQI_SHOES;
+	for (.@i = 1; .@i < getarraysize(.@indices); .@i++) {
+		if (getequipisequiped(.@indices[.@i])) {
+			.@EquipSlot = getitemslots(getequipid(.@indices[.@i]));
+			set .@menu$, .@menu$ + F_getpositionname(.@indices[.@i]) + " - ^1A66FF" + getequipname(.@indices[.@i]) + " " + ((.@EquipSlot) ? "[" + .@EquipSlot + "]" : "") + "^000000";
+			set .@equipped,1;
+		}
+		set .@menu$, .@menu$ + ":";
+	}
+
+	if (!.@equipped) {
+		mes "[" + .@npc_name$ + "]";
+		mes "You're not wearing anything I can refine.";
+		close;
+	}
+	set .@part, .@indices[select(.@menu$)];
+
+	if (!getequipisequiped(.@part))
+		close;
+
+	if (!getequipisenableref(.@part)) {
+		mes "[" + .@npc_name$ + "]";
+		mes "I can't refine this thing.";
+		close;
+	}
+
+	if (getequiprefinerycnt(.@part) >= 10) {
+		mes "[" + .@npc_name$ + "]";
+		mes "Hmm... someone perfected this already.";
+		mes "I don't think I can work on it further.";
+		close;
+	}
+
+	.@refineitemid = getequipid(.@part);
+	.@refinerycnt = getequiprefinerycnt(.@part);
+	.@itemtype = getiteminfo(.@refineitemid, ITEMINFO_TYPE);
+	.@checkmaterial = ((.@itemtype == IT_ARMOR) ? countitem(7619) : countitem(7620));
+	.@refinepercent = getequippercentrefinery(.@part, getequippercentrefinery(.@part) < 100 && .@checkmaterial);
+	setarray .@card[0], getequipcardid(.@part,0), getequipcardid(.@part,1), getequipcardid(.@part,2), getequipcardid(.@part,3);
+	if (.@refinepercent < 100 && .@checkmaterial) {
+		.@price = getequiprefinecost(.@part, REFINE_COST_ENRICHED, REFINE_ZENY_COST);
+		.@material = getequiprefinecost(.@part, REFINE_COST_ENRICHED, REFINE_MATERIAL_ID);
+	} else {
+		.@price = getequiprefinecost(.@part, REFINE_COST_NORMAL, REFINE_ZENY_COST);
+		.@material = getequiprefinecost(.@part, REFINE_COST_NORMAL, REFINE_MATERIAL_ID);
+	}
+
+	mes "[" + .@npc_name$ + "]";
+	if (.@itemtype == IT_WEAPON) {
+		mes "You want to refine a ^1A66FFLevel " + getequipweaponlv(.@part) + "^000000 Weapon?";
+	}
+	mes "For every refine you'll need:";
+	mes "^1A66FF" + getitemname(.@material) + "^000000 and ^00A000" + callfunc("F_InsertComma", .@price) + "^000000^777777 z^000000";
+	mes "What would you do?";
+	mes "(Chance: " + ((.@refinepercent < 100) ? "^FF3355" : "^1A66FF") + .@refinepercent + "%^000000)";
+	next;
+
+	switch(select("^1A66FFRefine once^000000:Refine to the safe limit:Info:^777777Cancel^000000")) {
+		case 1:
+			if (.@refinepercent < 100) {
+				mes "[" + .@npc_name$ + "]";
+				mes "You're going to upgrade this " + ((.@itemtype == IT_WEAPON) ? "weapon" : "defensive equipment") + " beyond ^FF3355safe limits^000000.";
+				mes "If the process is ^FF3355fail^000000, your " + ((.@itemtype == IT_WEAPON) ? "weapon" : "defensive equipment") + " will be ^FF3355gone^000000.";
+				mes "Do you really wish to continue?";
+				next;
+				if (select("Yes:^777777No^000000") == 2) {
+					mes "[" + .@npc_name$ + "]";
+					mes "What nonsense. You waste my precious time.";
+					mes "Get lost, punk.";
+					close;
+				}
+			}
+
+			if (countitem(.@material) > 0 && Zeny >= .@price) {
+				delitem .@material,1;
+				set Zeny, Zeny - .@price;
+
+				// anti-hack
+				if (callfunc("F_IsEquipIDHack", .@part, .@refineitemid) || callfunc("F_IsEquipRefineHack", .@part, .@refinerycnt) || callfunc("F_IsEquipCardHack", .@part, .@card[0], .@card[1], .@card[2], .@card[3])) {
+					mes "[" + .@npc_name$ + "]";
+					emotion ET_FRET;
+					mes "Wait a second...";
+					mes "Do you think I'm stupid?!";
+					mes "You switched the item while I wasn't looking! Get out of here!";
+					close;
+				}
+			} else {
+				mes "[" + .@npc_name$ + "]";
+				mes "Are these all you have?";
+				mes "Like I said, you'll need ^1A66FF" + getitemname(.@material) + "^000000 and ^00A000" + callfunc("F_InsertComma", .@price) + "^000000^777777 z^000000";
+				close;
+			}
+
+			if (.@refinepercent > rand(100)) {
+				successrefitem .@part;
+				emotion ET_BEST;
+				mes "[" + .@npc_name$ + "]";
+				mes "There you go! It's done.";
+				mes "It's been a while since I've made such a fine " + ((.@itemtype == IT_WEAPON) ? "weapon" : "armor") + ".";
+				close;
+			} else {
+				failedrefitem .@part;
+				emotion ET_HUK;
+				mes "[" + .@npc_name$ + "]";
+				mes "Oh my...";
+				mes "It was your choice and my ability, no regret.";
+				close;
+			}
+		case 2:
+			if (.@itemtype == IT_ARMOR) {
+				.@safe = 4;
+			} else if (.@itemtype == IT_WEAPON) {
+				.@equip_lv = getequipweaponlv(.@part);
+				switch (.@equip_lv) {
+					case 1:
+						.@safe = 7;
+						break;
+					case 2:
+						.@safe = 6;
+						break;
+					case 3:
+						.@safe = 5;
+						break;
+					case 4:
+						.@safe = 4;
+						break;
+					default:
+						close;
+				}
+			} else {
+				.@safe = 4;
+			}
+
+			if (.@refinerycnt < .@safe) {
+				.@refinecnt = .@safe - .@refinerycnt;
+				clear;
+				mes "[" + .@npc_name$ + "]";
+				mes "Ok, please wait...";
+				while(.@refinecnt) {
+					if (countitem(.@material) > 0 && Zeny >= .@price) {
+						delitem .@material,1;
+						set Zeny, Zeny - .@price;
+
+						// anti-hack
+						if (callfunc("F_IsEquipIDHack", .@part, .@refineitemid) || callfunc("F_IsEquipRefineHack", .@part, .@refinerycnt) || callfunc("F_IsEquipCardHack", .@part, .@card[0], .@card[1], .@card[2], .@card[3])) {
+							clear;
+							mes "[" + .@npc_name$ + "]";
+							emotion ET_FRET;
+							mes "Wait a second...";
+							mes "Do you think I'm stupid?!";
+							mes "You switched the item while I wasn't looking! Get out of here!";
+							close;
+						}
+					} else {
+						clear;
+						mes "[" + .@npc_name$ + "]";
+						mes "Are these all you have?";
+						mes "Like I said, you'll need ^1A66FF" + getitemname(.@material) + "^000000 and ^00A000" + callfunc("F_InsertComma", .@price) + "^000000^777777 z^000000 for every refine.";
+						close;
+					}
+
+					successrefitem .@part;
+					.@refinecnt = .@refinecnt - 1;
+					.@refinerycnt = getequiprefinerycnt(.@part);
+					sleep2 200;
+				}
+
+				clear;
+				mes "["+ .@npc_name$ +"]";
+				emotion ET_BEST;
+				mes "Done... Come again soon.";
+				close;
+			} else {
+				mes "["+ .@npc_name$ +"]";
+				mes "You have reached the maximum ^FF3355safe limit^000000 for this equipment.";
+			}
+			close;
+		case 3:
+			mes "[" + .@npc_name$ + "]";
+			mes "If you to upgrade your equipment beyond ^FF3355safe limits^000000 and you have a special material like ^1A66FF" + getitemname(7619) + "^000000 or ^1A66FF" + getitemname(7620) + "^000000 in your inventory, I will use those instead to improve the upgrade chance.";
+			close;
+		case 4:
+			mes "[" + .@npc_name$ + "]";
+			mes "Very well. Return at once if you seek my services.";
+			close;
+	}
+	close;
+}

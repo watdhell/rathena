@@ -1,0 +1,81 @@
+//===== rAthena Script =======================================
+//= Skill Master NPC
+//===== Description: =========================================
+//= Skill Master NPC (Pre-Renewal).
+//= Learn all skills.
+//============================================================
+
+prontera,141,227,6	script	Skill Master	811,{
+
+	.@SkMasterFee = 10000000;	// Fee (In Zeny)
+
+	set @eac, eaclass();
+
+	mes "[Skill Master]";
+	mes "Do you want to learn all of your class skills?";
+	mes "My service fee depends on your 1st class job level when changing to 2nd class.";
+	mes "^FF0000(Super Novice, TaeKwon Boy/Girl, Gunslinger and Ninja will follow job level 50 condition)^777777";
+	mes "^1A66FFJob level 50^000000: ^FF3355" + callfunc("F_InsertComma", .@SkMasterFee) + "^000000^777777 z^000000";
+	mes "^1A66FFJob level under 50^000000: ^FF3355" + callfunc("F_InsertComma", .@SkMasterFee * 2) + "^000000^777777 z^000000";
+	next;
+	
+	switch(select("^1A66FFYes^000000:What is this?:^777777No^000000")) {
+		case 1:
+			mes "[Skill Master]";
+			if ((@eac&EAJ_UPPERMASK) == EAJ_SUPER_NOVICE) {
+				.@maxjob = 99;
+			} else if ((@eac&EAJL_UPPER && @eac&EAJL_2) || BaseClass == Job_Gunslinger || BaseClass == Job_Ninja) {
+				.@maxjob = 70;
+			} else if ((@eac&EAJL_BABY && @eac&EAJL_2) || BaseClass == Job_Taekwon) {
+				.@maxjob = 50;
+			} else {
+				mes "Come back to me when you are stronger.";
+				close;
+			}
+
+			if (BaseLevel < 99 || JobLevel < .@maxjob) {
+				mes "Come back to me when your Base Level ^1A66FF99^000000 and Job Level ^1A66FF" + .@maxjob + "^000000.";
+				close;
+			}
+
+			if (Zeny < .@SkMasterFee * ((jobchange_level) ? ((jobchange_level > 10 && jobchange_level < 50) ? 2 : 1) : 1)) {
+				mes "You don't have enough zeny.";
+				close;
+			}
+
+			mes "Wait for a moment...";
+			next;
+
+			specialeffect2 EF_ANGEL;
+			mes "[Skill Master]";
+			mes "Done!";
+			mes "Now you've mastered all of your class skills";
+			Zeny -= .@SkMasterFee * ((jobchange_level) ? ((jobchange_level > 10 && jobchange_level < 50) ? 2 : 1) : 1);
+			atcommand "@skillall " + strcharinfo(0);
+			close;
+		case 2:
+			mes "[Skill Master]";
+			mes "By using my service, you can learn all of your class skills at once.";
+			next;
+			switch(select("^1A66FFEligible condition^000000:^777777Thanks for the information!^000000")) {
+				case 1:
+					mes "^00A000Transcendent Second Class^000000: ^1A66FF99/70^000000";
+					mes "^00A000TaeKwon (Boy, Girl, and Master) and Soul Linker^000000: ^1A66FF99/50^000000";
+					mes "^00A000Gunslinger and Ninja^000000: ^1A66FF99/70^000000";
+					mes "^00A000Super Novice^000000: ^1A66FF99/99^000000";
+					mes "^00A000Baby Class (Second Class)^000000: ^1A66FF99/50^000000";
+					close;
+				case 2:
+					mes "[Skill Master]";
+					mes "You're welcome";
+					close;
+			}
+			close;
+		case 3:
+			mes "[Skill Master]";
+			mes "Okay then.";
+			close;
+	}
+
+	close;
+}
