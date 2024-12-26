@@ -1,0 +1,49 @@
+function	script	Costumes_R	{
+
+	set .@Total,14;
+	//<%>,<ItemID>,<Amount>	
+	setarray .@P1[0],10,20764,1; //Fallen Angel Wing
+	setarray .@P2[0],20,45008,1; //Flapping Angel Wing
+	setarray .@P3[0],30,969,1; 	 //Gold
+	setarray .@P4[0],30,7620,2;  //Enriched Oridecon
+	setarray .@P5[0],30,7620,2;  //Enriched Elunium	
+	setarray .@P6[0],70,7179,10; //Pods
+	setarray .@P7[0],70,12259,2; //Miracle Medecine
+	setarray .@P8[0],70,12684,10; //Speed Potion
+	setarray .@P9[0],70,14586,5; //Spark Candy	
+	setarray .@P10[0],70,16682,1; //Halter Box
+	 
+	setarray .@P11[0],90,12906,1; //Hwergelmir's Tonic
+	setarray .@P12[0],90,12904,1; //Steamed Scorpion
+	setarray .@P13[0],90,12903,1; //Steamed Tongue
+	setarray .@P14[0],90,12908,1; //Immortal Stew
+	
+	setarray .@Default[0],45101,1; //Token Scrolls
+	set .@i, rand(1,.@Total);
+	if (rand(1,100) > getd(".@P"+.@i+"[0]"))
+	{
+		for(set .@j,0; .@j<getarraysize(.@Default); set .@j,.@j+2)
+		{
+			getitem .@Default[.@j], .@Default[.@j+1];
+			if(!.@k[0])
+				setarray .@k[0], .@Default[.@j], .@Default[.@j+1];
+		}
+	}
+	else{
+		for(set .@j,1; .@j<getarraysize(getd(".@P"+.@i)); set .@j,.@j+2)
+		{
+			getitem getd(".@P"+.@i+"["+.@j+"]"), getd(".@P"+.@i+"["+(.@j+1)+"]");
+			if (!.@k[0])
+			{
+				set .@gz,.@i;
+				setarray .@k[0], getd(".@P"+.@i+"["+.@j+"]"), getd(".@P"+.@i+"["+(.@j+1)+"]");
+				break;
+			}
+		}
+	}
+	
+	if(1<=.@gz&&.@gz<=9)
+	announce ""+strcharinfo(0)+" has opened [Devil Scroll] and reward ["+getitemname(.@k[0])+" x "+.@k[1]+"]!",0;
+	specialeffect2 251;
+	end;
+}

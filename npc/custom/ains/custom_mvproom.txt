@@ -1,0 +1,408 @@
+//===== rAthena Script =======================================
+//= Private MVP & Branch Room
+//===== By: ==================================================
+//= AnnieRuru
+//===== Current Version: =====================================
+//= 1.0
+//===== Compatible With: =====================================
+//= rAthena Project
+//===== Description: =========================================
+//= Allows players to rent an MVP room for personal use,
+//= or for a party or guild.
+//===== Additional Comments: =================================
+//= 1.0 First version, edited. [Euphy]
+//============================================================
+
+prontera,166,206,4	script	Private MVP Room	71,{
+	mes "[Private MVP Room]";
+	mes "Please select a private MVP room.";
+	if (getvariableofnpc(.rentcost, "MVP Summoner"))
+		mes "The cost to rent a room for " + getvariableofnpc(.timeout, "MVP Summoner") + " minutes is " + callfunc("F_InsertComma", getvariableofnpc(.rentcost, "MVP Summoner")) + " zeny.";
+	else
+		mes "You can only use the room for only " + getvariableofnpc(.timeout, "MVP Summoner") + " minutes.";
+	mes " ";
+	for (.@i = 1; .@i <= 8; .@i++)
+		if (getvariableofnpc(.renttime[.@i], "MVP Summoner"))
+			mes "Room #" + .@i + " = " + .color$[.type[.@i]] + .whoinuse$[.@i] + "^000000";
+	next;
+	.@room = select(
+		"MVP Room 1 [" + getmapusers("06guild_01") + "]",
+		"MVP Room 2 [" + getmapusers("06guild_02") + "]",
+		"MVP Room 3 [" + getmapusers("06guild_03") + "]",
+		"MVP Room 4 [" + getmapusers("06guild_04") + "]",
+		"MVP Room 5 [" + getmapusers("06guild_05") + "]",
+		"MVP Room 6 [" + getmapusers("06guild_06") + "]",
+		"MVP Room 7 [" + getmapusers("06guild_07") + "]",
+		"MVP Room 8 [" + getmapusers("06guild_08") + "]");
+	if (getvariableofnpc(.renttime[.@room], "MVP Summoner")) {
+		if (.inuseid[.@room] == getcharid(.type[.@room])) {
+			warp "06guild_0" + .@room, 50,46;
+			close;
+		} else {
+			mes "[Private MVP Room]";
+			mes "This room is reserved for ";
+			mes .color$[.type[.@room]] + .whoinuse$[.@room] + "^000000.";
+			mes "Please select another.";
+			close;
+		}
+	}
+	mes "[Private MVP Room]";
+	mes "Reserve this room for...";
+	next;
+	set .@type, select("For my party members", "For my guild members", "For personal account use");
+	if (!getcharid(.@type)) {
+		mes "[Private MVP Room]";
+		mes "You do not own a " +((.@type == 1)? "Party" : "Guild") + ".";
+		close;
+	}
+	else if (Zeny < getvariableofnpc(.rentcost, "MVP Summoner")) {
+		mes "You don't have enough zeny to rent a room.";
+		close;
+	}
+	else if (getvariableofnpc(.renttime[.@room], "MVP Summoner")) {
+		mes "[Private MVP Room]";
+		mes "I'm sorry, somebody else has already registered this room faster than you.";
+		close;
+	}
+	for (.@i = 1; .@i <= 8; .@i++) {
+		if ((getvariableofnpc(.renttime[.@i], "MVP Summoner")) && .@type == .type[.@i] && getcharid(.@type) == .inuseid[.@i]) {
+			mes "[Private MVP Room]";
+			mes "You already rented Room#" + .@i + ". Use that room instead.";
+			close;
+		}
+	}
+	set .type[.@room], .@type;
+	set .inuseid[.@room], getcharid(.@type);
+	set .whoinuse$[.@room], strcharinfo((.@type == 3)? 0 : .@type);
+	Zeny -= getvariableofnpc(.rentcost, "MVP Summoner");
+	warp "06guild_0" + .@room, 50,46;
+	killmonsterall "06guild_0" + .@room;
+	donpcevent "MVP Summoner#" + .@room + "::OnEnterMap";
+	close;
+OnInit:
+	.color$[1] =  "^EE8800"; // party color
+	.color$[2] =  "^70CC11"; // guild color
+	.color$[3] =  "^0000FF"; // account color
+	end;
+}
+
+-	script	MVP Summoner	-1,{
+	mes "[MVP Summoner]";
+	mes "Time left: " + callfunc("Time2Str", .renttime[atoi(strnpcinfo(2))] + .timeout * 60);
+	mes "Hi, what can I do for you?";
+	next;
+	setarray .mobsx[0],8,50,91,50;
+	setarray .mobsy[0],50,91,50,8;
+	set .mobsxy, rand(0,3);
+	switch (select(.menu$)) {
+	case 1:
+		if (mobcount("this", strnpcinfo(3) + "::OnMobDead")) {
+			mes "[MVP Summoner]";
+			mes "I cannot summon another MVP when there are monsters around.";
+			close;
+		} else if (.mvpcost) {
+			mes "[MVP Summoner]";
+			mes "The cost to summon an MVP is " + callfunc("F_InsertComma", .mvpcost) + " zeny.";
+			next;
+			set .@menu, select(.mvpid_menu$) -1;
+			mes "[MVP Summoner]";
+			if (Zeny < .mvpcost) {
+				mes "You don't have enough zeny to summon an MVP.";
+				close;
+			}
+		} else {
+			set .@menu, select(.mvpid_menu$) -1;
+			mes "[MVP Summoner]";
+		}
+		mes "Please get ready.";
+		close2;
+		if (Zeny < .mvpcost) end;
+		Zeny -= .mvpcost;
+		monster "this", .mobsx[.mobsxy], .mobsy[.mobsxy], "--ja--", .mvpid[.@menu], 1, strnpcinfo(3) + "::OnMobDead";
+		end;
+	case 2:
+		if (mobcount("this", strnpcinfo(3) + "::OnMobDead")) {
+			mes "[MVP Summoner]";
+			mes "I cannot summon another mini-boss when there are monsters around.";
+			close;
+		} else if (.bosscost) {
+			mes "[MVP Summoner]";
+			mes "The cost to summon a mini-boss is " + callfunc("F_InsertComma", .bosscost) + " zeny.";
+			next;
+			set .@menu, select(.bossid_menu$) -1;
+			mes "[MVP Summoner]";
+			if (Zeny < .bosscost) {
+				mes "You doesn't have enough zeny to summon a mini-boss.";
+				close;
+			}
+		} else {
+			set .@menu, select(.bossid_menu$) -1;
+			mes "[MVP Summoner]";
+		}
+		mes "Please get ready.";
+		close2;
+		if (Zeny < .bosscost) end;
+		Zeny -= .bosscost;
+		monster "this", .mobsx[.mobsxy], .mobsy[.mobsxy], "--ja--", .bossid[.@menu], 1, strnpcinfo(3) + "::OnMobDead";
+		end;
+	case 3:
+		mes "[MVP Summoner]";
+		mes "Great Demon Baphomet could enter invincible state, meaning you can't hurt them.";
+		mes "Do you want to remove it?";
+		next;
+			if (select("Yes:No") == 1) {
+			if (Zeny < .removecost) {
+				mes "[MVP Summoner]";
+				mes "You doesn't have enough zeny to remove Great Demon Baphomet's invincible state.";
+				mes "Good Luck!";
+				close;
+			}
+			Zeny -= .removecost;
+			getmapxy .@map$, .@x, .@y;
+			areamobuseskill .@map$,50,50,50,1929,"NPC_INVINCIBLEOFF",1,0,0,ET_HELP,0;
+			mes "[MVP Summoner]";
+			mes "Done!";
+			mes "Good luck on defeating them!";
+			close;
+		}
+		mes "[MVP Summoner]";
+		mes "Okay then";
+		close;
+	case 4:
+		mes "[MVP Summoner]";
+		mes "Are you sure you want to leave this room?";
+		next;
+		if (select("Yes:No") == 1)
+			warp .respawnmap$, .respawnx, .respawny;
+		close;
+	case 5:
+		mes "[MVP Summoner]";
+		if (getmapusers(strcharinfo(3)) > 1) {
+			mes "There are still some players in this room. Make sure you are the last member in this room to use this option.";
+			close;
+		}
+		mes "Are you sure you want to give up this room?";
+		if (.rentcost)
+			mes "You will need to pay again to enter this room.";
+		next;
+		if (select("Yes", "No") == 2) close;
+		awake strnpcinfo(0);
+		end;
+	}
+	close;
+
+OnMobDead:
+	end;
+
+OnEnterMap:
+	.@id = atoi(strnpcinfo(2));
+	.renttime[.@id] = gettimetick(2);
+	sleep .timeout * 60000;
+	mapwarp strnpcinfo(4), .respawnmap$, .respawnx, .respawny;
+	.renttime[.@id] = 0;
+	killmonsterall strnpcinfo(4);
+	end;
+
+OnInit:
+	if (!getstrlen(strnpcinfo(2))) {
+
+//	Config ---------------------------------------------------------------------------------------
+
+	// Room rental time, in minutes.
+	// When time runs out, all players inside the room will be kicked out.
+	// Do NOT set this to zero!
+	set .timeout, 60;
+
+	set .rentcost, 1000000;		// Zeny cost for renting a room (0 = free)
+	set .mvpcost, 10000000;		// Zeny cost to summon an MVP (0 = free)
+	set .bosscost, 1000000;		// Zeny cost to summon a Mini-boss monster (0 = free)
+	set .removecost, 100000;	// Zeny cost to remove monster's invincible state (0 = free)
+
+	//	Options setting inside MVP room
+	set .@menu[1], 1;	// Turn MVP Summoning On/Off
+	set .@menu[2], 1;	// Turn Mini boss Summoning On/Off
+
+	// Respawn point when players leave the room
+	set .respawnmap$, "prontera";
+	set .respawnx, 156;
+	set .respawny, 188;
+
+	setarray .mvpid[0],
+		1511,//	Amon Ra
+		1647,// Assassin Cross Eremes
+		1785,//	Atroce
+		1630,//	Bacsojin
+		1039,//	Baphomet
+		1399,// Baphomet
+		1874,//	Beelzebub
+		2068,// Boitata
+		1272,//	Dark Lord
+		1719,//	Datale
+		1046,//	Doppelgangger
+		1389,//	Dracula
+		1112,//	Drake
+		1115,//	Eddga
+		1957,//	Entweihen Crothen
+		1418,//	Evil Snake Lord
+		1871,//	Fallen Bishop
+		1252,//	Garm
+		1768,//	Gloom Under Night
+		1086,//	Golden Thief Bug
+		1885,//	Gopinich
+		1929,// Great Demon Baphomet
+		1990,//	Hardrock Mammoth
+		1649,// High Priest Magaleta
+		1651,// High Wizard Katrinn
+		1832,//	Ifrit
+		1492,//	Incantation Samurai
+		1734,//	Kiel D-01
+		1251,//	Knight of Windstorm
+		1779,//	Ktullanux
+		1688,//	Lady Tanee
+		1646,// Lord Knight Seyren
+		1373,//	Lord of Death
+		1147,//	Maya
+		1059,//	Mistress
+		1150,//	Moonlight Flower
+		1956,//	Naght Sieger
+		2022,//	Nidhoggr's Shadow 
+		1087,//	Orc Hero
+		1190,//	Orc Lord
+		1038,//	Osiris
+		1157,//	Pharaoh
+		1159,//	Phreeoni
+		1623,//	RSX 0806
+		1650,// Sniper Shecil
+		1991,//	Tendrilion
+		1583,//	Tao Gunka
+		1708,//	Thanatos
+		1312,//	Turtle General
+		1751,//	Valkyrie Randgris
+		1685,// Vesper
+		1648,// Whitesmith Harword
+		1917,// Wounded Morocc
+		1658;//	Ygnizem
+
+	setarray .bossid[0],
+		1096,// Angeling
+		1388,// Archangeling
+		1795,// Bloody Knight
+		1830,// Bow Guardian
+		1839,// Byorgue
+		1307,// Cat O' Nine Tail
+		1283,// Chimera
+		1302,// Dark Illusion
+		1582,// Deviling
+		1091,// Dragon Fly
+		1093,// Eclipse
+		1205,// Executioner
+		1783,// Galion
+		1592,// Gangster
+		1681,// Gemini
+		1120,// Ghostring
+		1259,// Gryphon
+		1720,// Hydro
+		1918,// Incarnation of Morroc
+		1919,// Incarnation of Morroc
+		1920,// Incarnation of Morroc
+		1921,// Incarnation of Morroc
+		1833,// Kasa
+		1090,// Mastering
+		1289,// Maya Purple
+		1262,// Mutant Dragon
+		1203,// Mysteltainn
+		1870,// Necromancer
+		1700,// Observation
+		1295,// Owl Baron
+		1320,// Owl Duke
+		1702,// Retribution
+		1831,// Salamander
+		1701,// Shelter
+		1754,// Skeggiold (Brown)
+		1755,// Skeggiold (Blue)
+		1703,// Solace
+		1829,// Sword Guardian
+		1705,// Thanatos Despero
+		1707,// Thanatos Dolor
+		1706,// Thanatos Maero
+		1704,// Thanatos Odium
+		1204,// Tirfing
+		1089,// Toad
+		1092,// Vagabond Wolf
+		1765;// Valkyrie
+
+//	Config Ends ------------------------------------------------------------------------
+
+		if (!.timeout) set .timeout, 60;
+		.menu$ = .menu$ + (.@menu[1] ? "Summon MVP" : "") + ":";
+		.menu$ = .menu$ + (.@menu[2] ? "Summon Mini-boss" : "") + ":";
+		.menu$ = .menu$ + "Remove Invincible State:Leave this room:Give up this room";
+		if (.@menu[1]) {
+			.@size = getarraysize(.mvpid);
+			for (.@i = 0; .@i < .@size; .@i++)
+				.mvpid_menu$ = .mvpid_menu$ + getmonsterinfo(.mvpid[.@i], MOB_NAME) + ":";
+		}
+		if (.@menu[2]) {
+			.@size = getarraysize(.bossid);
+			for (.@i = 0; .@i < .@size; .@i++)
+				.bossid_menu$ = .bossid_menu$ + getmonsterinfo(.bossid[.@i], MOB_NAME) + ":";
+		}
+	}
+	else {
+		mapannounce strnpcinfo(4), "An administrator has refreshed the server. Please re-register this room.", bc_map;
+		mapwarp strnpcinfo(4), .respawnmap$, .respawnx, .respawny;
+	}
+	end;
+}
+
+-	shop	MVP room#branch	-1,604:20000,12103:2000000
+
+06guild_01,50,50,4	duplicate(MVP Summoner)	MVP Summoner#1	116
+06guild_02,50,50,4	duplicate(MVP Summoner)	MVP Summoner#2	116
+06guild_03,50,50,4	duplicate(MVP Summoner)	MVP Summoner#3	116
+06guild_04,50,50,4	duplicate(MVP Summoner)	MVP Summoner#4	116
+06guild_05,50,50,4	duplicate(MVP Summoner)	MVP Summoner#5	116
+06guild_06,50,50,4	duplicate(MVP Summoner)	MVP Summoner#6	116
+06guild_07,50,50,4	duplicate(MVP Summoner)	MVP Summoner#7	116
+06guild_08,50,50,4	duplicate(MVP Summoner)	MVP Summoner#8	116
+
+06guild_01	mapflag	nowarpto
+06guild_02	mapflag	nowarpto
+06guild_03	mapflag	nowarpto
+06guild_04	mapflag	nowarpto
+06guild_05	mapflag	nowarpto
+06guild_06	mapflag	nowarpto
+06guild_07	mapflag	nowarpto
+06guild_08	mapflag	nowarpto
+06guild_01	mapflag	nomemo
+06guild_02	mapflag	nomemo
+06guild_03	mapflag	nomemo
+06guild_04	mapflag	nomemo
+06guild_05	mapflag	nomemo
+06guild_06	mapflag	nomemo
+06guild_07	mapflag	nomemo
+06guild_08	mapflag	nomemo
+06guild_01	mapflag	noteleport
+06guild_02	mapflag	noteleport
+06guild_03	mapflag	noteleport
+06guild_04	mapflag	noteleport
+06guild_05	mapflag	noteleport
+06guild_06	mapflag	noteleport
+06guild_07	mapflag	noteleport
+06guild_08	mapflag	noteleport
+06guild_01	mapflag	nosave	SavePoint
+06guild_02	mapflag	nosave	SavePoint
+06guild_03	mapflag	nosave	SavePoint
+06guild_04	mapflag	nosave	SavePoint
+06guild_05	mapflag	nosave	SavePoint
+06guild_06	mapflag	nosave	SavePoint
+06guild_07	mapflag	nosave	SavePoint
+06guild_08	mapflag	nosave	SavePoint
+06guild_01	mapflag	nopenalty
+06guild_02	mapflag	nopenalty
+06guild_03	mapflag	nopenalty
+06guild_04	mapflag	nopenalty
+06guild_05	mapflag	nopenalty
+06guild_06	mapflag	nopenalty
+06guild_07	mapflag	nopenalty
+06guild_08	mapflag	nopenalty

@@ -1,0 +1,126 @@
+//===== rAthena Script =======================================
+//= Instanced Emp Test Breaker + Ladder
+//===== By: ==================================================
+//= Mabuhay
+// ============================================================/*
+ NOTE: Add a custom emperium mob to avoid errors.
+
+ SERVER SIDE:
+ db/import/instance_db.txt
+ 200,Emperium Test Breaker,3600,1,job3_arch01,26,28
+ 
+ db/import/mob_db.txt
+ 3002,EMPELIUM,Emperium,Emperium,90,68430,0,0,0,1,60,71,40,50,1,17,80,50,26,20,10,12,0,8,26,0x6200000,300,1288,288,384,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+
+ db/import/mob_avail.txt
+ 3002,1288,0 // Emperium Test Breaker
+ 
+*/
+// PS: Create a duplicate map of job3_arch01 
+// and replace all job3_arch01 in this script to your
+// custom map duplicate.
+
+prontera,145,185,0	script	Emp Test Breaker	1288,{
+	.@npc$ = "[^0000ff Emperium Test Breaker ^000000]";
+	mes .@npc$;
+	mes "Last Break Time : ^FF0000"+ (last_break_time / 1000) +"."+ (last_break_time % 1000) +"^000000s.";
+	mes "Best Break Time : ^FF0000"+ (p_break_time / 1000) +"."+ (p_break_time % 1000) +"^000000s.";
+	next;
+	menu "View Ranking", M1, "Enter Emp Test Breaker", M2;
+	
+M1: query_sql("SELECT `char_id`, CAST(`value` AS SIGNED) FROM `char_reg_num` WHERE `key` = 'p_break_time' ORDER BY CAST(`value` AS SIGNED) ASC LIMIT 10",.@cid,.@value);
+	for(.@i = 0; .@i<getarraysize(.@cid); .@i++) {
+		query_sql("SELECT `name` FROM `char` WHERE `char_id` = "+.@cid[.@i]+";",.@j$);
+		.@name$[.@i] = .@j$;
+	}
+	if (!getarraysize(.@cid))
+		mes "The rankings are empty.";
+	else 
+	for (.@i = 0; .@i<getarraysize(.@cid); .@i++)
+		mes "Top "+(.@i+1)+". ^0000ff"+.@name$[.@i]+"^000000 ~ ^FF0000"+(.@value[.@i] / 1000)+"."+(.@value[.@i] % 1000)+"^000000s";
+	close;
+	
+M2: .@ins$ = "Emperium Test Breaker";
+	.@pid =  getcharid(1);
+	mes .@npc$;
+	if ( !.@pid ) {
+		mes "You must create a party to enter.";
+		close;
+	}
+	getpartymember .@pid, 1;
+	if ( $@partymembercount != 1 ) {
+		mes "Please form a party of 1 to continue";
+		close;
+	}
+	mes "Are you sure you want to enter "+.@ins$+"?";
+	next;
+	if(select("Im ready!:Cancel")==2) close;
+	mes .@npc$;
+	.@create = instance_create(.@ins$, IM_PARTY);
+	if ( .@create < 0 ) {
+		switch (.@create) {
+			case -1: mes "ERROR: Invalid type."; break;
+			case -2: mes "ERROR: Party not found."; break;
+			case -3: mes "ERROR: Instance already exists."; break;
+			case -4: mes "ERROR: No free instances."; break;
+		}
+		mes "Instance creation ^FF0000failed^000000.";
+		emotion ET_HUK;
+		close;
+	}
+	next;
+	.@enter = instance_enter(.@ins$);
+	if (.@enter != 0) {
+		mes .@npc$;
+		switch (.@enter) {
+			case 1: mes "ERROR: Party not found."; break;
+			case 2: mes "ERROR: Party does not have an instance."; break;
+			case 3: mes "ERROR: Unknown error."; break;
+		}
+		mes "Instance entry ^FF0000failed^000000.";
+		emotion ET_HUK;
+		close;
+	}
+	end;
+}
+
+job3_arch01,0,0,0	script	emp_control	-1,{
+OnInit:
+	disablenpc strnpcinfo(0);
+	end;
+	
+OnInstanceInit:
+	sleep 5000;
+	'secc = 10; // starting time.. in seconds
+	instance_announce instance_id(), "Get ready! in "+ 'secc +"!", bc_map;
+	sleep 1000;
+	--'secc;
+	while ( 'secc > 0 ) {
+		instance_announce instance_id(), 'secc+"...", bc_map;
+		sleep 1000;
+		--'secc;
+	}
+	monster instance_mapname(strnpcinfo(4), instance_id()),30,28, "--ja--", 3002, 1, instance_npcname(strnpcinfo(0),instance_id())+"::OnEmpDown";
+	initnpctimer;
+	end;
+
+OnEmpDown:
+	'time = last_break_time = getnpctimer(0);
+	if ( !p_break_time ) {
+		p_break_time = 'time;
+		dispbottom "You have set your first personal record.";
+	}
+	else if ( 'time < p_break_time ) {
+		dispbottom "You have broken your personal record!";
+		p_break_time = 'time;
+	}
+	dispbottom "Your current best time is "+ (p_break_time / 1000) +"."+ (p_break_time % 1000) +"s.";
+	instance_announce instance_id(), "Time : "+ ('time / 1000) +"."+ ('time % 1000) +"s.", bc_map;
+	sleep2 2000;
+	instance_announce instance_id(), "Warping out in 5 seconds.", bc_map;
+	sleep2 5000; // 5 sec pause
+	warp "SavePoint", 0, 0;
+	sleep2 1000;
+	instance_destroy instance_id();
+	end;
+}
