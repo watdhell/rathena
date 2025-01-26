@@ -478,6 +478,16 @@ struct PACKET_CZ_RESET_SKILL{
 } __attribute__((packed));
 DEFINE_PACKET_HEADER(CZ_RESET_SKILL, 0x0bb1)
 
+struct PACKET_ZC_SKILLINFO_UPDATE{
+	uint16 packetType;
+	uint16 skillId;
+	uint16 level;
+	uint16 sp;
+	uint16 range2;
+	bool upFlag;
+} __attribute__((packed));
+DEFINE_PACKET_HEADER(ZC_SKILLINFO_UPDATE, 0x10e);
+
 struct PACKET_ZC_BOSS_INFO{
 	int16 packetType;
 	uint8 type;
@@ -1711,6 +1721,53 @@ struct PACKET_ZC_THROW_MVPITEM {
 	int16 packetType;
 } __attribute__((packed));
 DEFINE_PACKET_HEADER(ZC_THROW_MVPITEM, 0x10d);
+
+struct PACKET_ZC_UPDATE_MAPINFO{
+	int16 packetType;
+	int16 x;
+	int16 y;
+	int16 type;
+	char mapname[MAP_NAME_LENGTH_EXT];
+} __attribute__((packed));
+DEFINE_PACKET_HEADER(ZC_UPDATE_MAPINFO, 0x192);
+
+struct PACKET_CZ_REQ_ENTER_ROOM{
+	int16 packetType;
+	uint32 chat_id;
+	char password[8];
+} __attribute__((packed));
+DEFINE_PACKET_HEADER(CZ_REQ_ENTER_ROOM, 0xd9);
+
+struct PACKET_CZ_CHANGE_CHATROOM{
+	int16 packetType;
+	uint16 packetSize;
+	uint16 limit;
+	uint8 type;
+	char password[8];
+	char title[];
+} __attribute__((packed));
+DEFINE_PACKET_HEADER(CZ_CHANGE_CHATROOM, 0xde);
+
+struct PACKET_CZ_ADD_EXCHANGE_ITEM{
+	int16 packetType;
+	uint16 index;
+	int32 amount;
+} __attribute__((packed));
+DEFINE_PACKET_HEADER(CZ_ADD_EXCHANGE_ITEM, 0xe8);
+
+struct PACKET_CZ_MOVE_ITEM_FROM_CART_TO_BODY{
+	int16 packetType;
+	uint16 index;
+	int32 amount;
+} __attribute__((packed));
+DEFINE_PACKET_HEADER(CZ_MOVE_ITEM_FROM_CART_TO_BODY, 0x127);
+
+struct PACKET_CZ_SELECT_WARPPOINT{
+	int16 packetType;
+	int16 skill_id;
+	char mapname[MAP_NAME_LENGTH_EXT];
+} __attribute__((packed));
+DEFINE_PACKET_HEADER(CZ_SELECT_WARPPOINT, 0x11b);
 
 // NetBSD 5 and Solaris don't like pragma pack but accept the packed attribute
 #if !defined( sun ) && ( !defined( __NETBSD__ ) || __NetBSD_Version__ >= 600000000 )

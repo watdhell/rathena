@@ -5088,10 +5088,12 @@ void clif_getareachar_unit( map_session_data* sd,struct block_list *bl ){
 				clif_specialeffect_single(bl,EF_BABYBODY2,sd->fd);
 #if PACKETVER >= 20120404
 			if (battle_config.monster_hp_bars_info && !map_getmapflag(bl->m, MF_HIDEMOBHPBAR)) {
-				int32 i;
-				for(i = 0; i < DAMAGELOG_SIZE; i++)// must show hp bar to all char who already hit the mob.
-					if( md->dmglog[i].id == sd->status.char_id )
+				// Must show hp bar to all char who already hit the mob.
+				for( const auto& entry : md->dmglog ){
+					if( entry.id == sd->status.char_id ){
 						clif_monster_hp_bar(md, sd->fd);
+					}
+				}
 			}
 #endif
 		}
@@ -5325,32 +5327,28 @@ void clif_standing(block_list& bl){
 }
 
 
-/// Inform client(s) about a map-cell change (ZC_UPDATE_MAPINFO).
-/// 0192 <x>.W <y>.W <type>.W <map name>.16B
-void clif_changemapcell(int32 fd, int16 m, int32 x, int32 y, int32 type, enum send_target target)
-{
-	unsigned char buf[32];
+/// Inform client(s) about a map-cell change.
+/// 0192 <x>.W <y>.W <type>.W <map name>.16B (ZC_UPDATE_MAPINFO)
+void clif_changemapcell( int16 m, int16 x, int16 y, int16 type, send_target target, block_list* tbl ){
+	PACKET_ZC_UPDATE_MAPINFO p = {};
 
-	WBUFW(buf,0) = 0x192;
-	WBUFW(buf,2) = x;
-	WBUFW(buf,4) = y;
-	WBUFW(buf,6) = type;
-	mapindex_getmapname_ext(map_mapid2mapname(m),WBUFCP(buf,8));
+	p.packetType = HEADER_ZC_UPDATE_MAPINFO;
+	p.x = x;
+	p.y = y;
+	p.type = type;
+	mapindex_getmapname_ext( map_mapid2mapname( m ), p.mapname );
 
-	if( session_isActive(fd) )
-	{
-		WFIFOHEAD(fd,packet_len(0x192));
-		memcpy(WFIFOP(fd,0), buf, packet_len(0x192));
-		WFIFOSET(fd,packet_len(0x192));
-	}
-	else
-	{
-		struct block_list dummy_bl;
+	if( tbl != nullptr ){
+		clif_send( &p, sizeof( p ), tbl, target );
+	}else{
+		block_list dummy_bl = {};
+
 		dummy_bl.type = BL_NUL;
 		dummy_bl.x = x;
 		dummy_bl.y = y;
 		dummy_bl.m = m;
-		clif_send(buf,packet_len(0x192),&dummy_bl,target);
+
+		clif_send( &p, sizeof( p ), &dummy_bl, target );
 	}
 }
 
@@ -5375,22 +5373,20 @@ void clif_getareachar_item( map_session_data& sd, flooritem_data& fitem ){
 
 /// Notifes client about Graffiti
 /// 01c9 <id>.L <creator id>.L <x>.W <y>.W <unit id>.B <visible>.B <has msg>.B <msg>.80B (ZC_SKILL_ENTRY2)
-static void clif_graffiti(struct block_list *bl, struct skill_unit *unit, enum send_target target) {
-	unsigned char buf[128];
-	
-	nullpo_retv(bl);
-	nullpo_retv(unit);
+static void clif_graffiti( skill_unit& unit, send_target target, block_list& bl ){
+	packet_graffiti_entry p = {};
 
-	WBUFW(buf, 0) = 0x1c9;
-	WBUFL(buf, 2) = unit->bl.id;
-	WBUFL(buf, 6) = unit->group->src_id;
-	WBUFW(buf,10) = unit->bl.x;
-	WBUFW(buf,12) = unit->bl.y;
-	WBUFB(buf,14) = unit->group->unit_id;
-	WBUFB(buf,15) = 1;
-	WBUFB(buf,16) = 1;
-	safestrncpy(WBUFCP(buf,17),unit->group->valstr,MESSAGE_SIZE);
-	clif_send(buf,packet_len(0x1c9),bl,target);
+	p.PacketType = graffiti_entryType;
+	p.AID = unit.bl.id;
+	p.creatorAID = unit.group->src_id;
+	p.xPos = unit.bl.x;
+	p.yPos = unit.bl.y;
+	p.job = unit.group->unit_id;
+	p.isContens = 1;
+	p.isVisible = 1;
+	safestrncpy( p.msg, unit.group->valstr, sizeof( p.msg ) );
+
+	clif_send( &p, sizeof( p ), &bl, target );
 }
 
 /// Notifies the client of a skill unit.
@@ -5423,7 +5419,7 @@ void clif_getareachar_skillunit(struct block_list *bl, struct skill_unit *unit, 
 
 #if PACKETVER >= 3
 	if (unit_id == UNT_GRAFFITI) { // Graffiti [Valaris]
-		clif_graffiti(bl, unit, target);
+		clif_graffiti( *unit, target, *bl );
 		return;
 	}
 #endif
@@ -5475,7 +5471,7 @@ void clif_getareachar_skillunit(struct block_list *bl, struct skill_unit *unit, 
 	clif_send(buf, len, bl, target);
 
 	if (unit->group->skill_id == WZ_ICEWALL)
-		clif_changemapcell(fd, unit->bl.m, unit->bl.x, unit->bl.y, 5, SELF);
+		clif_changemapcell( unit->bl.m, unit->bl.x, unit->bl.y, 5, SELF, bl );
 }
 
 /// 09ca <lenght>.W <id> L <creator id>.L <x>.W <y>.W <unit id>.L <range>.B <visible>.B <skill level>.B (ZC_SKILL_ENTRY5)
@@ -5509,7 +5505,7 @@ static void clif_clearchar_skillunit( skill_unit& unit, map_session_data& sd ){
 	clif_send( &packet, sizeof( packet ), &sd.bl, SELF );
 
 	if( unit.group && unit.group->skill_id == WZ_ICEWALL ){
-		clif_changemapcell( sd.fd, unit.bl.m, unit.bl.x, unit.bl.y, unit.val2, SELF );
+		clif_changemapcell( unit.bl.m, unit.bl.x, unit.bl.y, unit.val2, SELF, &sd.bl );
 	}
 }
 
@@ -5708,7 +5704,7 @@ void clif_skillinfoblock(map_session_data *sd)
 	// adoption fix
 	if (haveCallPartnerSkill) {
 		clif_addskill(*sd, WE_CALLPARTNER);
-		clif_skillinfo(sd, WE_CALLPARTNER, 0);
+		clif_skillinfo( *sd, WE_CALLPARTNER );
 	}
 
 	// workaround for bugreport:5348; send the remaining skills one by one to bypass packet size limit
@@ -5717,7 +5713,7 @@ void clif_skillinfoblock(map_session_data *sd)
 		if( (id = sd->status.skill[i].id) != 0 && ( id != WE_CALLPARTNER || !haveCallPartnerSkill ) )
 		{
 			clif_addskill(*sd, id);
-			clif_skillinfo(sd, id, 0);
+			clif_skillinfo( *sd, id );
 		}
 	}
 }
@@ -5783,52 +5779,60 @@ void clif_deleteskill(map_session_data& sd, uint16 skill_id, bool skip_infoblock
 		clif_skillinfoblock(&sd);
 }
 
-/// Updates a skill in the skill tree (ZC_SKILLINFO_UPDATE).
-/// 010e <skill id>.W <level>.W <sp cost>.W <attack range>.W <upgradable>.B
-void clif_skillup(map_session_data *sd, uint16 skill_id, int32 lv, int32 range, int32 upgradable) {
-	nullpo_retv(sd);
-
-	int32 fd = sd->fd;
+/// Updates a skill in the skill tree.
+/// 010e <skill id>.W <level>.W <sp cost>.W <attack range>.W <upgradable>.B (ZC_SKILLINFO_UPDATE)
+void clif_skillup( map_session_data& sd, uint16 skill_id, uint16 lv, uint16 range, bool upgradable ){
 	uint16 idx = skill_get_index(skill_id);
 
-	if (!session_isActive(fd) || !idx)
+	if( idx == 0 ){
 		return;
+	}
 	
-	WFIFOHEAD(fd, packet_len(0x10e));
-	WFIFOW(fd, 0) = 0x10e;
-	WFIFOW(fd, 2) = skill_id;
-	WFIFOW(fd, 4) = lv;
-	WFIFOW(fd, 6) = skill_get_sp(skill_id, lv);
-	WFIFOW(fd, 8) = range;
-	WFIFOB(fd, 10) = upgradable;
-	WFIFOSET(fd, packet_len(0x10e));
+	PACKET_ZC_SKILLINFO_UPDATE p{};
+
+	p.packetType = HEADER_ZC_SKILLINFO_UPDATE;
+	p.skillId = skill_id;
+	p.level = lv;
+	p.sp = static_cast<decltype(p.sp)>( skill_get_sp( skill_id, lv ) );
+	p.range2 = range;
+	p.upFlag = upgradable;
+
+	clif_send( &p, sizeof( p ), &sd.bl, SELF );
 }
 
 
-/// Updates a skill in the skill tree (ZC_SKILLINFO_UPDATE2).
-/// 07e1 <skill id>.W <type>.L <level>.W <sp cost>.W <attack range>.W <upgradable>.B
-void clif_skillinfo(map_session_data *sd,int32 skill_id, int32 inf)
-{
-	nullpo_retv(sd);
-
-	const int32 fd = sd->fd;
+/// Updates a skill in the skill tree
+/// 07e1 <skill id>.W <type>.L <level>.W <sp cost>.W <attack range>.W <upgradable>.B (ZC_SKILLINFO_UPDATE2)
+/// 0b33 <skill id>.W <type>.L <level>.W <sp cost>.W <attack range>.W <upgradable>.B <level2>.W (ZC_SKILLINFO_UPDATE3)
+void clif_skillinfo( map_session_data& sd, uint16 skill_id ){
+#if PACKETVER >= 20090715
 	uint16 idx = skill_get_index(skill_id);
 
-	if (!session_isActive(fd) || !idx)
+	if( idx == 0 ){
 		return;
+	}
 
-	WFIFOHEAD(fd,packet_len(0x7e1));
-	WFIFOW(fd,0) = 0x7e1;
-	WFIFOW(fd,2) = skill_id;
-	WFIFOL(fd,4) = inf?inf:skill_get_inf(skill_id);
-	WFIFOW(fd,8) = sd->status.skill[idx].lv;
-	WFIFOW(fd,10) = skill_get_sp(skill_id,sd->status.skill[idx].lv);
-	WFIFOW(fd,12) = skill_get_range2(&sd->bl,skill_id,sd->status.skill[idx].lv,false);
-	if( sd->status.skill[idx].flag == SKILL_FLAG_PERMANENT )
-		WFIFOB(fd,14) = (sd->status.skill[idx].lv < skill_tree_get_max(skill_id, sd->status.class_))? 1:0;
-	else
-		WFIFOB(fd,14) = 0;
-	WFIFOSET(fd,packet_len(0x7e1));
+	PACKET_ZC_SKILLINFO_UPDATE2 p = {};
+
+	p.packetType = HEADER_ZC_SKILLINFO_UPDATE2;	
+	p.id = skill_id;
+	p.level = sd.status.skill[idx].lv;
+	p.sp = static_cast<decltype(p.sp)>( skill_get_sp( skill_id,sd.status.skill[idx].lv ) );
+	p.range2 = static_cast<decltype(p.range2)>( skill_get_range2( &sd.bl,skill_id,sd.status.skill[idx].lv,false ) );
+	p.inf = skill_get_inf( skill_id );
+
+	if( sd.status.skill[idx].flag == SKILL_FLAG_PERMANENT && sd.status.skill[idx].lv < skill_tree_get_max( skill_id, sd.status.class_ ) ){
+		p.upFlag = true;
+	}else{
+		p.upFlag = false;
+	}
+
+#if PACKETVER_RE_NUM >= 20190807 || PACKETVER_ZERO_NUM >= 20190918
+	p.level2 = p.level;
+#endif
+
+	clif_send( &p, sizeof( p ), &sd.bl, SELF );
+#endif
 }
 
 void clif_skill_scale( struct block_list *bl, int32 src_id, int32 x, int32 y, uint16 skill_id, uint16 skill_lv, int32 casttime ){
@@ -12327,39 +12331,43 @@ void clif_parse_CreateChatRoom( int32 fd, map_session_data* sd){
 }
 
 
-/// Chatroom join request (CZ_REQ_ENTER_ROOM).
-/// 00d9 <chat ID>.L <passwd>.8B
+/// Chatroom join request.
+/// 00d9 <chat ID>.L <passwd>.8B (CZ_REQ_ENTER_ROOM)
 void clif_parse_ChatAddMember(int32 fd, map_session_data* sd){
-	struct s_packet_db* info = &packet_db[RFIFOW(fd,0)];
-	int32 chatid = RFIFOL(fd,info->pos[0]);
-	const char* password = RFIFOCP(fd,info->pos[1]); // not zero-terminated
+	if( sd == nullptr ){
+		return;
+	}
 
-	chat_joinchat(sd,chatid,password);
+	const PACKET_CZ_REQ_ENTER_ROOM* p = reinterpret_cast<PACKET_CZ_REQ_ENTER_ROOM*>( RFIFOP( fd, 0 ) );
+
+	chat_joinchat( sd, p->chat_id, p->password );
 }
 
 
-/// Chatroom properties adjustment request (CZ_CHANGE_CHATROOM).
-/// 00de <packet len>.W <limit>.W <type>.B <passwd>.8B <title>.?B
+/// Chatroom properties adjustment request.
+/// 00de <packet len>.W <limit>.W <type>.B <passwd>.8B <title>.?B (CZ_CHANGE_CHATROOM)
 /// type:
 ///     0 = private
 ///     1 = public
 void clif_parse_ChatRoomStatusChange(int32 fd, map_session_data* sd){
-	struct s_packet_db* info = &packet_db[RFIFOW(fd,0)];
-	int32 len = RFIFOW(fd,info->pos[0])-15;
-	int32 limit = RFIFOW(fd,info->pos[1]);
-	bool pub = (RFIFOB(fd,info->pos[2]) != 0);
-	const char* password = RFIFOCP(fd,info->pos[3]); // not zero-terminated
-	const char* title = RFIFOCP(fd,info->pos[4]); // not zero-terminated
-	char s_password[CHATROOM_PASS_SIZE];
-	char s_title[CHATROOM_TITLE_SIZE];
+	if( sd == nullptr ){
+		return;
+	}
+
+	const PACKET_CZ_CHANGE_CHATROOM* p = reinterpret_cast<PACKET_CZ_CHANGE_CHATROOM*>( RFIFOP( fd, 0 ) );
+	size_t len = p->packetSize - sizeof( *p );
 
 	if( len <= 0 )
 		return; // invalid input
 
-	safestrncpy(s_password, password, CHATROOM_PASS_SIZE);
-	safestrncpy(s_title, title, min(len+1,CHATROOM_TITLE_SIZE)); //NOTE: assumes that safestrncpy will not access the len+1'th byte
+	char s_password[CHATROOM_PASS_SIZE];
+	char s_title[CHATROOM_TITLE_SIZE];
 
-	chat_changechatstatus(sd, s_title, s_password, limit, pub);
+	safestrncpy( s_password, p->password, sizeof( s_password ) );
+	// NOTE: assumes that safestrncpy will not access the len+1'th byte
+	safestrncpy( s_title, p->title, min( len + 1, CHATROOM_TITLE_SIZE ) );
+
+	chat_changechatstatus( sd, s_title, s_password, p->limit, p->type );
 }
 
 
@@ -12449,18 +12457,21 @@ void clif_parse_TradeAck(int32 fd,map_session_data *sd)
 }
 
 
-/// Request to add an item to current trade (CZ_ADD_EXCHANGE_ITEM).
-/// 00e8 <index>.W <amount>.L
+/// Request to add an item to current trade.
+/// 00e8 <index>.W <amount>.L (CZ_ADD_EXCHANGE_ITEM)
 void clif_parse_TradeAddItem(int32 fd,map_session_data *sd)
 {
-	struct s_packet_db* info = &packet_db[RFIFOW(fd,0)];
-	short index = RFIFOW(fd,info->pos[0]);
-	int32 amount = RFIFOL(fd,info->pos[1]);
+	if( sd == nullptr ){
+		return;
+	}
 
-	if( index == 0 )
-		trade_tradeaddzeny(sd, amount);
-	else
-		trade_tradeadditem(sd, server_index(index), (short)amount);
+	const PACKET_CZ_ADD_EXCHANGE_ITEM* p = reinterpret_cast<PACKET_CZ_ADD_EXCHANGE_ITEM*>( RFIFOP( fd, 0 ) );
+
+	if( p->index == 0 ){
+		trade_tradeaddzeny( sd, p->amount );
+	}else{
+		trade_tradeadditem( sd, server_index( p->index ), static_cast<int16>( p->amount ) );
+	}
 }
 
 
@@ -12511,16 +12522,22 @@ void clif_parse_PutItemToCart( int32 fd, map_session_data *sd ){
 }
 
 
-/// Request to move an item from cart to inventory (CZ_MOVE_ITEM_FROM_CART_TO_BODY).
-/// 0127 <index>.W <amount>.L
+/// Request to move an item from cart to inventory.
+/// 0127 <index>.W <amount>.L (CZ_MOVE_ITEM_FROM_CART_TO_BODY)
 void clif_parse_GetItemFromCart(int32 fd,map_session_data *sd)
 {
-	struct s_packet_db* info = &packet_db[RFIFOW(fd,0)];
+	if( sd == nullptr ){
+		return;
+	}
+
 	if (!pc_iscarton(sd) || pc_cant_act2(sd))
 		return;
 	if (map_getmapflag(sd->bl.m, MF_NOUSECART))
 		return;
-	pc_getitemfromcart(sd,RFIFOW(fd,info->pos[0])-2,RFIFOL(fd,info->pos[1]));
+
+	const PACKET_CZ_MOVE_ITEM_FROM_CART_TO_BODY* p = reinterpret_cast<PACKET_CZ_MOVE_ITEM_FROM_CART_TO_BODY*>( RFIFOP( fd, 0 ) );
+
+	pc_getitemfromcart( sd, server_index( p->index ), p->amount );
 }
 
 
@@ -13056,28 +13073,35 @@ void clif_parse_UseSkillToPosMoreInfo(int32 fd, map_session_data *sd)
 }
 
 
-/// Answer to map selection dialog (CZ_SELECT_WARPPOINT).
-/// 011b <skill id>.W <map name>.16B
+/// Answer to map selection dialog.
+/// 011b <skill id>.W <map name>.16B (CZ_SELECT_WARPPOINT)
 void clif_parse_UseSkillMap(int32 fd, map_session_data* sd)
 {
-	struct s_packet_db* info = &packet_db[RFIFOW(fd,0)];
-	uint16 skill_id = RFIFOW(fd,info->pos[0]);
-	char map_name[MAP_NAME_LENGTH];
+	if( sd == nullptr ){
+		return;
+	}
 
-	mapindex_getmapname(RFIFOCP(fd,info->pos[1]), map_name);
 	sd->state.workinprogress = WIP_DISABLE_NONE;
 
-	if(skill_id != sd->menuskill_id)
+	const PACKET_CZ_SELECT_WARPPOINT* p = reinterpret_cast<PACKET_CZ_SELECT_WARPPOINT*>( RFIFOP( fd, 0 ) );
+
+	if( p->skill_id != sd->menuskill_id ){
 		return;
+	}
 
 	//It is possible to use teleport with the storage window open bugreport:8027
-	if (pc_cant_act(sd) && !sd->state.storage_flag && skill_id != AL_TELEPORT) {
+	if( pc_cant_act( sd ) && !sd->state.storage_flag && p->skill_id != AL_TELEPORT ){
 		clif_menuskill_clear(sd);
 		return;
 	}
 
 	pc_delinvincibletimer(sd);
-	skill_castend_map(sd,skill_id,map_name);
+
+	char map_name[MAP_NAME_LENGTH];
+
+	mapindex_getmapname( p->mapname, map_name );
+
+	skill_castend_map( sd, p->skill_id, map_name );
 }
 
 
@@ -14963,7 +14987,7 @@ void clif_parse_GMChangeMapType(int32 fd, map_session_data *sd)
 	type = RFIFOW(fd,info->pos[2]);
 
 	map_setgatcell(sd->bl.m,x,y,type);
-	clif_changemapcell(0,sd->bl.m,x,y,type,ALL_SAMEMAP);
+	clif_changemapcell( sd->bl.m, x, y, type, ALL_SAMEMAP, &sd->bl );
 	//FIXME: once players leave the map, the client 'forgets' this information.
 }
 
