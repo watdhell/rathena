@@ -699,7 +699,8 @@ enum e_damage_type : uint8_t {
 	DMG_CRITICAL,			/// critical hit
 	DMG_LUCY_DODGE,			/// lucky dodge
 	DMG_TOUCH,				/// (touch skill?)
-	DMG_MULTI_HIT_CRITICAL  /// multi-hit with critical
+	DMG_MULTI_HIT_CRITICAL,	/// multi-hit with critical
+	DMG_SPLASH_ENDURE,  	/// splash against target with endure status
 };
 
 enum class e_pet_evolution_result : uint32 {
@@ -1161,7 +1162,8 @@ void clif_pet_food( map_session_data& sd, int32 foodid, bool success );
 void clif_pet_autofeed_status(map_session_data* sd, bool force);
 
 //friends list
-int32 clif_friendslist_toggle_sub(map_session_data *sd,va_list ap);
+void clif_friendslist_toggle( map_session_data& sd, const s_friend& f, bool online );
+int32 clif_friendslist_toggle_sub( map_session_data* tsd, va_list ap );
 void clif_friendslist_send( map_session_data& sd );
 void clif_friendslist_reqack(map_session_data *sd, map_session_data *f_sd, int32 type);
 

@@ -5112,22 +5112,55 @@ void clif_getareachar_unit( map_session_data* sd,struct block_list *bl ){
 	}
 }
 
-//Modifies the type of damage according to status changes [Skotlex]
+//Modifies the type of damage according to target status changes [Skotlex]
 //Aegis data specifies that: 4 endure against single hit sources, 9 against multi-hit.
-static enum e_damage_type clif_calc_delay(enum e_damage_type type, int32 div, int64 damage, int32 delay)
-{
-	return ( delay == 0 && damage > 0 ) ? ( div > 1 ? DMG_MULTI_HIT_ENDURE : DMG_ENDURE ) : type;
+static enum e_damage_type clif_calc_delay( block_list& bl, e_damage_type type, int32 div, int64 damage ) {
+	if (damage < 1)
+		return type;
+
+	status_change* sc = status_get_sc( &bl );
+
+	if (sc == nullptr || sc->empty())
+		return type;
+	
+	if (sc->getSCE(SC_ENDURE) == nullptr)	// !TODO: should berserk status also change the type?
+		return type;
+
+	switch( type ) {
+		case DMG_ENDURE:
+		case DMG_MULTI_HIT_ENDURE:
+		case DMG_SPLASH_ENDURE:
+			return type;
+		case DMG_NORMAL:
+		case DMG_CRITICAL:
+		case DMG_SINGLE:
+		case DMG_MULTI_HIT_CRITICAL:	// DMG_ENDURE despite div > 1
+			return DMG_ENDURE;
+		case DMG_MULTI_HIT:
+			return DMG_MULTI_HIT_ENDURE;
+		case DMG_SPLASH:
+			return DMG_SPLASH_ENDURE;
+	}
+
+	// Custom, unknown result of endure with types not listed
+	return (div > 1 ? DMG_MULTI_HIT_ENDURE : DMG_ENDURE);
 }
 
 /*==========================================
  * Estimates walk delay based on the damage criteria. [Skotlex]
  *------------------------------------------*/
-static int32 clif_calc_walkdelay(struct block_list *bl,int32 delay, char type, int64 damage, int32 div_)
-{
-	if (type == DMG_ENDURE || type == DMG_MULTI_HIT_ENDURE || damage <= 0)
+static int32 clif_calc_walkdelay( block_list &bl, int32 delay, e_damage_type type, int64 damage, int32 div_ ) {
+	if (damage < 1)
 		return 0;
 
-	if (bl->type == BL_PC) {
+	switch( type ) {
+		case DMG_ENDURE:
+		case DMG_MULTI_HIT_ENDURE:
+		case DMG_SPLASH_ENDURE:
+			return 0;
+	}
+
+	if (bl.type == BL_PC) {
 		if (battle_config.pc_walk_delay_rate != 100)
 			delay = delay*battle_config.pc_walk_delay_rate/100;
 	} else
@@ -5137,7 +5170,7 @@ static int32 clif_calc_walkdelay(struct block_list *bl,int32 delay, char type, i
 	if (div_ > 1) //Multi-hit skills mean higher delays.
 		delay += battle_config.multihit_delay*(div_-1);
 
-	return (delay > 0) ? delay:1; //Return 1 to specify there should be no noticeable delay, but you should stop walking.
+	return (delay > 0) ? delay : 1; //Return 1 to specify there should be no noticeable delay, but you should stop walking.
 }
 
 /*========================================== [Playtester]
@@ -5202,8 +5235,7 @@ int32 clif_damage(block_list& src, block_list& dst, t_tick tick, int32 sdelay, i
 	int32 damage = (int32)cap_value(sdamage,INT_MIN,INT_MAX);
 	int32 damage2 = (int32)cap_value(sdamage2,INT_MIN,INT_MAX);
 
-	if (type != DMG_MULTI_HIT_CRITICAL)
-		type = clif_calc_delay(type,div,damage+damage2,ddelay);
+	type = clif_calc_delay( dst, type, div, damage+damage2 );
 
 	damage = static_cast<decltype(damage)>(clif_hallucination_damage(dst, damage));
 	damage2 = static_cast<decltype(damage2)>(clif_hallucination_damage(dst, damage2));
@@ -5274,10 +5306,8 @@ int32 clif_damage(block_list& src, block_list& dst, t_tick tick, int32 sdelay, i
 	if(&src == &dst) 
 		unit_setdir(&src, unit_getdir(&src));
 
-	// In case this assignment is bypassed by DMG_MULTI_HIT_CRITICAL
-	type = clif_calc_delay(type, div, damage + damage2, ddelay);
 	//Return adjusted can't walk delay for further processing.
-	return clif_calc_walkdelay(&dst, ddelay, type, damage+damage2, div);
+	return clif_calc_walkdelay(dst, ddelay, type, damage+damage2, div);
 }
 
 /*==========================================
@@ -5993,7 +6023,7 @@ void clif_skill_cooldown( map_session_data &sd, uint16 skill_id, t_tick tick ){
 /// 0114 <skill id>.W <src id>.L <dst id>.L <tick>.L <src delay>.L <dst delay>.L <damage>.W <level>.W <div>.W <type>.B (ZC_NOTIFY_SKILL)
 /// 01de <skill id>.W <src id>.L <dst id>.L <tick>.L <src delay>.L <dst delay>.L <damage>.L <level>.W <div>.W <type>.B (ZC_NOTIFY_SKILL2)
 int32 clif_skill_damage( block_list& src, block_list& dst, t_tick tick, int32 sdelay, int32 ddelay, int64 sdamage, int32 div, uint16 skill_id, uint16 skill_lv, e_damage_type type ){
-	type = clif_calc_delay( type, div, sdamage, ddelay );
+	type = clif_calc_delay( dst, type, div, sdamage );
 	sdamage = clif_hallucination_damage( dst, sdamage );
 
 	PACKET_ZC_NOTIFY_SKILL packet{};
@@ -6046,7 +6076,7 @@ int32 clif_skill_damage( block_list& src, block_list& dst, t_tick tick, int32 sd
 	}
 
 	//Because the damage delay must be synced with the client, here is where the can-walk tick must be updated. [Skotlex]
-	return clif_calc_walkdelay( &dst, ddelay, type, damage, div );
+	return clif_calc_walkdelay( dst, ddelay, type, damage, div );
 }
 
 
@@ -6061,7 +6091,7 @@ int32 clif_skill_damage2(struct block_list *src,struct block_list *dst,t_tick ti
 	nullpo_ret(dst);
 
 	type = (type>DMG_NORMAL)?type:skill_get_hit(skill_id);
-	type = clif_calc_delay(type,div,damage,ddelay);
+	type = clif_calc_delay( *dst, type, div, damage );
 
 	damage = clif_hallucination_damage( *dst, damage );
 
@@ -6099,7 +6129,7 @@ int32 clif_skill_damage2(struct block_list *src,struct block_list *dst,t_tick ti
 	}
 
 	//Because the damage delay must be synced with the client, here is where the can-walk tick must be updated. [Skotlex]
-	return clif_calc_walkdelay(dst,ddelay,type,damage,div);
+	return clif_calc_walkdelay(*dst,ddelay,type,damage,div);
 }
 */
 
@@ -10921,8 +10951,37 @@ void clif_parse_LoadEndAck(int32 fd,map_session_data *sd)
 			clif_status_load(&sd->bl, EFST_SKE, 1);
 		}
 
-		// Notify everyone that this char logged in [Skotlex].
-		map_foreachpc(clif_friendslist_toggle_sub, sd->status.account_id, sd->status.char_id, 1);
+		// Notify everyone that this char logged in.
+		if( battle_config.friend_auto_add ){
+			for( const s_friend& my_friend : sd->status.friends ){
+				// Cancel early
+				if( my_friend.char_id == 0 ){
+					break;
+				}
+
+				if( map_session_data* tsd = map_charid2sd( my_friend.char_id ); tsd != nullptr ){
+					for( const s_friend& their_friend : tsd->status.friends ){
+						// Cancel early
+						if( their_friend.char_id == 0 ){
+							break;
+						}
+
+						if( their_friend.account_id != sd->status.account_id ){
+							continue;
+						}
+
+						if( their_friend.char_id != sd->status.char_id ){
+							continue;
+						}
+
+						clif_friendslist_toggle( *tsd, their_friend, true );
+						break;
+					}
+				}
+			}
+		}else{
+			map_foreachpc( clif_friendslist_toggle_sub, sd->status.account_id, sd->status.char_id, static_cast<int32>( true ) );
+		}
 
 		if (!sd->state.autotrade) { // Don't trigger NPC event or opening vending/buyingstore will be failed
 			npc_script_event( *sd, NPCE_LOGIN );
@@ -13342,10 +13401,14 @@ void clif_parse_NpcStringInput(int32 fd, map_session_data* sd){
 }
 
 
-/// NPC dialog 'close' click (CZ_CLOSE_DIALOG).
-/// 0146 <npc id>.L
+/// NPC dialog 'close' click.
+/// 0146 <npc id>.L (CZ_CLOSE_DIALOG)
 void clif_parse_NpcCloseClicked(int32 fd,map_session_data *sd)
 {
+	if( sd == nullptr ){
+		return;
+	}
+
 	if (!sd->npc_id) //Avoid parsing anything when the script was done with. [Skotlex]
 		return;
 
@@ -13353,25 +13416,28 @@ void clif_parse_NpcCloseClicked(int32 fd,map_session_data *sd)
 		sd->idletime = last_tick;
 	}
 
-	npc_scriptcont(sd, RFIFOL(fd,packet_db[RFIFOW(fd,0)].pos[0]), true);
+	const PACKET_CZ_CLOSE_DIALOG* p = reinterpret_cast<PACKET_CZ_CLOSE_DIALOG*>( RFIFOP( fd, 0 ) );
+
+	npc_scriptcont( sd, p->GID, true );
 }
 
 
-/// Answer to identify item selection dialog (CZ_REQ_ITEMIDENTIFY).
-/// 0178 <index>.W
+/// Answer to identify item selection dialog.
+/// 0178 <index>.W (CZ_REQ_ITEMIDENTIFY)
 /// index:
 ///     -1 = cancel
 void clif_parse_ItemIdentify(int32 fd,map_session_data *sd) {
-	int16 idx = RFIFOW(fd,packet_db[RFIFOW(fd,0)].pos[0]) - 2;
-
 	if (sd->menuskill_id != MC_IDENTIFY)
 		return;
+
+	const PACKET_CZ_REQ_ITEMIDENTIFY* p = reinterpret_cast<PACKET_CZ_REQ_ITEMIDENTIFY*>( RFIFOP( fd, 0 ) );
+	uint16 idx = server_index( p->index );
 
 	// Ignore the request
 	// - Invalid item index
 	// - Invalid item ID or item doesn't exist
 	// - Item is already identified
-	if (idx < 0 || idx >= MAX_INVENTORY ||
+	if ( idx >= MAX_INVENTORY ||
 		sd->inventory.u.items_inventory[idx].nameid == 0 || sd->inventory_data[idx] == nullptr ||
 		sd->inventory.u.items_inventory[idx].identify) {// cancel pressed
 			sd->state.workinprogress = WIP_DISABLE_NONE;
@@ -13419,36 +13485,65 @@ void clif_parse_SelectArrow(int32 fd,map_session_data *sd) {
 }
 
 
-/// Answer to SA_AUTOSPELL skill selection dialog (CZ_SELECTAUTOSPELL).
-/// 01ce <skill id>.L
+/// Answer to SA_AUTOSPELL skill selection dialog.
+/// 01ce <skill id>.L (CZ_SELECTAUTOSPELL)
 void clif_parse_AutoSpell(int32 fd,map_session_data *sd)
 {
 	if (sd->menuskill_id != SA_AUTOSPELL)
 		return;
 	sd->state.workinprogress = WIP_DISABLE_NONE;
-	skill_autospell(sd,RFIFOL(fd,packet_db[RFIFOW(fd,0)].pos[0]));
+
+	const PACKET_CZ_SELECTAUTOSPELL* p = reinterpret_cast<PACKET_CZ_SELECTAUTOSPELL*>( RFIFOP( fd, 0 ) );
+
+	skill_autospell( sd, static_cast<uint16>( p->skill_id ) );
+
 	clif_menuskill_clear(sd);
 }
 
 
-/// Request to display item carding/composition list (CZ_REQ_ITEMCOMPOSITION_LIST).
-/// 017a <card index>.W
+/// Request to display item carding/composition list.
+/// 017a <card index>.W (CZ_REQ_ITEMCOMPOSITION_LIST)
 void clif_parse_UseCard(int32 fd,map_session_data *sd)
 {
 	if (sd->state.trading != 0)
 		return;
-	clif_use_card(sd,RFIFOW(fd,packet_db[RFIFOW(fd,0)].pos[0])-2);
+
+	const PACKET_CZ_REQ_ITEMCOMPOSITION_LIST* p = reinterpret_cast<PACKET_CZ_REQ_ITEMCOMPOSITION_LIST*>( RFIFOP( fd, 0 ) );
+	uint16 idx = server_index( p->index );
+
+	if( idx >= MAX_INVENTORY ){
+		return;
+	}
+
+	clif_use_card( sd, idx );
 }
 
 
-/// Answer to carding/composing item selection dialog (CZ_REQ_ITEMCOMPOSITION).
-/// 017c <card index>.W <equip index>.W
+/// Answer to carding/composing item selection dialog.
+/// 017c <card index>.W <equip index>.W (CZ_REQ_ITEMCOMPOSITION)
 void clif_parse_InsertCard(int32 fd,map_session_data *sd)
 {
+	if( sd == nullptr ){
+		return;
+	}
+
 	struct s_packet_db* info = &packet_db[RFIFOW(fd,0)];
 	if (sd->state.trading != 0)
 		return;
-	pc_insert_card(sd,RFIFOW(fd,info->pos[0])-2,RFIFOW(fd,info->pos[1])-2);
+
+	const PACKET_CZ_REQ_ITEMCOMPOSITION* p = reinterpret_cast<PACKET_CZ_REQ_ITEMCOMPOSITION*>( RFIFOP( fd, 0 ) );
+	uint16 card_idx = server_index( p->index_card );
+	uint16 equip_idx = server_index( p->index_equip );
+
+	if( card_idx >= MAX_INVENTORY ){
+		return;
+	}
+
+	if( equip_idx >= MAX_INVENTORY ){
+		return;
+	}
+
+	pc_insert_card( sd, card_idx, equip_idx );
 }
 
 
@@ -13466,36 +13561,54 @@ void clif_parse_SolveCharName(int32 fd, map_session_data *sd)
 }
 
 
-/// /resetskill /resetstate (CZ_RESET).
+/// /resetskill /resetstate.
 /// Request to reset stats or skills.
-/// 0197 <type>.W
+/// 0197 <type>.W (CZ_RESET)
 /// type:
 ///     0 = state
 ///     1 = skill
 void clif_parse_ResetChar(int32 fd, map_session_data *sd) {
-	char cmd[15];
+	if( sd == nullptr ){
+		return;
+	}
 
-	if( RFIFOW(fd,packet_db[RFIFOW(fd,0)].pos[0]) )
-		safesnprintf(cmd,sizeof(cmd),"%cresetskill",atcommand_symbol);
-	else
-		safesnprintf(cmd,sizeof(cmd),"%cresetstat",atcommand_symbol);
+	const PACKET_CZ_RESET* p = reinterpret_cast<PACKET_CZ_RESET*>( RFIFOP( fd, 0 ) );
+	char cmd[CHAT_SIZE_MAX];
+
+	switch( p->type ){
+		case 0:
+			safesnprintf( cmd, sizeof( cmd ), "%cresetstat", atcommand_symbol );
+			break;
+#if !(PACKETVER_MAIN_NUM >= 20220216 || PACKETVER_ZERO_NUM >= 20220203)
+		case 1:
+			safesnprintf( cmd, sizeof(cmd), "%cresetskill", atcommand_symbol );
+			break;
+#endif
+		default:
+			return;
+	}
 
 	is_atcommand(fd, sd, cmd, 1);
 }
 
 
-/// /lb /nlb (CZ_LOCALBROADCAST).
+/// /lb /nlb.
 /// Request to broadcast a message on current map.
-/// 019c <packet len>.W <text>.?B
+/// 019c <packet len>.W <text>.?B (CZ_LOCALBROADCAST)
 void clif_parse_LocalBroadcast(int32 fd, map_session_data* sd)
 {
-	struct s_packet_db* info = &packet_db[RFIFOW(fd,0)];
-	char command[CHAT_SIZE_MAX+16];
-	uint32 len = RFIFOW(fd,info->pos[0])-4;
-	char* msg = RFIFOCP(fd,info->pos[1]);
+	if( sd == nullptr ){
+		return;
+	}
 
-	// as the length varies depending on the command used, just block unreasonably long strings
-	mes_len_check(msg, len, CHAT_SIZE_MAX);
+	const PACKET_CZ_LOCALBROADCAST* p = reinterpret_cast<PACKET_CZ_LOCALBROADCAST*>( RFIFOP( fd, 0 ) );
+	size_t len = p->packetSize - sizeof( *p );
+
+	char msg[CHAT_SIZE_MAX];
+
+	safestrncpy( msg, p->message, std::min<size_t>( len, sizeof( msg ) ) );
+
+	char command[CHAT_SIZE_MAX];
 
 	safesnprintf(command,sizeof(command),"%clkami %s", atcommand_symbol, msg);
 	is_atcommand(fd, sd, command, 1);
@@ -13556,43 +13669,39 @@ void clif_parse_MoveFromKafra(int32 fd,map_session_data *sd)
 }
 
 
-/// Request to move an item from cart to storage (CZ_MOVE_ITEM_FROM_CART_TO_STORE).
-/// 0129 <index>.W <amount>.L
+/// Request to move an item from cart to storage.
+/// 0129 <index>.W <amount>.L (CZ_MOVE_ITEM_FROM_CART_TO_STORE)
 void clif_parse_MoveToKafraFromCart(int32 fd, map_session_data *sd){
-	struct s_packet_db* info = &packet_db[RFIFOW(fd,0)];
-
-	int32 idx = RFIFOW(fd,info->pos[0]) - 2;
-	int32 amount = RFIFOL(fd,info->pos[1]);
-
-	if( sd->state.vending )
-		return;
-	if (!pc_iscarton(sd))
-		return;
-	if (map_getmapflag(sd->bl.m, MF_NOUSECART))
-		return;
-
-	if (idx < 0 || idx >= MAX_INVENTORY || amount < 1)
-		return;
-	if( sd->inventory.u.items_inventory[idx].equipSwitch ){
-		clif_msg( sd, MSI_SWAP_EQUIPITEM_UNREGISTER_FIRST );
+	if( sd == nullptr ){
 		return;
 	}
 
+	if( sd->state.vending )
+		return;
+	if (!pc_iscarton(sd))
+		return;
+	if (map_getmapflag(sd->bl.m, MF_NOUSECART))
+		return;
+
+	const PACKET_CZ_MOVE_ITEM_FROM_CART_TO_STORE* p = reinterpret_cast<PACKET_CZ_MOVE_ITEM_FROM_CART_TO_STORE*>( RFIFOP( fd, 0 ) );
+	uint16 idx = server_index( p->index );
+
+
 	if (sd->state.storage_flag == 1)
-		storage_storageaddfromcart(sd, &sd->storage, idx, amount);
+		storage_storageaddfromcart( sd, &sd->storage, idx, p->amount );
 	else if (sd->state.storage_flag == 2)
-		storage_guild_storageaddfromcart(sd, idx, amount);
+		storage_guild_storageaddfromcart( sd, idx, p->amount );
 	else if (sd->state.storage_flag == 3)
-		storage_storageaddfromcart(sd, &sd->premiumStorage, idx, amount);
+		storage_storageaddfromcart( sd, &sd->premiumStorage, idx, p->amount );
 }
 
 
-/// Request to move an item from storage to cart (CZ_MOVE_ITEM_FROM_STORE_TO_CART).
-/// 0128 <index>.W <amount>.L
+/// Request to move an item from storage to cart.
+/// 0128 <index>.W <amount>.L (CZ_MOVE_ITEM_FROM_STORE_TO_CART)
 void clif_parse_MoveFromKafraToCart(int32 fd, map_session_data *sd){
-	struct s_packet_db* info = &packet_db[RFIFOW(fd,0)];
-	int32 idx = RFIFOW(fd,info->pos[0]) - 1;
-	int32 amount = RFIFOL(fd,info->pos[1]);
+	if( sd == nullptr ){
+		return;
+	}
 
 	if( sd->state.vending )
 		return;
@@ -13601,13 +13710,16 @@ void clif_parse_MoveFromKafraToCart(int32 fd, map_session_data *sd){
 	if (map_getmapflag(sd->bl.m, MF_NOUSECART))
 		return;
 
+	const PACKET_CZ_MOVE_ITEM_FROM_STORE_TO_CART* p = reinterpret_cast<PACKET_CZ_MOVE_ITEM_FROM_STORE_TO_CART*>( RFIFOP( fd, 0 ) );
+	uint16 idx = server_storage_index( p->index );
+
 	if (sd->state.storage_flag == 1)
-		storage_storagegettocart(sd, &sd->storage, idx, amount);
+		storage_storagegettocart( sd, &sd->storage, idx, p->amount );
 	else
 	if (sd->state.storage_flag == 2)
-		storage_guild_storagegettocart(sd, idx, amount);
+		storage_guild_storagegettocart( sd, idx, p->amount );
 	else if (sd->state.storage_flag == 3)
-		storage_storagegettocart(sd, &sd->premiumStorage, idx, amount);
+		storage_storagegettocart( sd, &sd->premiumStorage, idx, p->amount );
 }
 
 
@@ -15185,50 +15297,60 @@ void clif_parse_NoviceExplosionSpirits(int32 fd, map_session_data *sd)
 /// Friends List
 ///
 
-/// Toggles a single friend online/offline [Skotlex] (ZC_FRIENDS_STATE).
-/// 0206 <account id>.L <char id>.L <state>.B
-/// 0206 <account id>.L <char id>.L <state>.B <name>.24B >= 20180221
+/// Toggles a single friend online/offline.
+/// 0206 <account id>.L <char id>.L <state>.B (ZC_FRIENDS_STATE)
+/// 0206 <account id>.L <char id>.L <state>.B <name>.24B >= 20180221 (ZC_FRIENDS_STATE)
 /// state:
 ///     0 = online
 ///     1 = offline
-void clif_friendslist_toggle(map_session_data *sd,uint32 account_id, uint32 char_id, int32 online)
-{
-	int32 i, fd = sd->fd;
+void clif_friendslist_toggle( map_session_data& sd, const s_friend& f, bool online ){
+	PACKET_ZC_FRIENDS_STATE p = {};
 
-	//Seek friend.
-	for (i = 0; i < MAX_FRIENDS && sd->status.friends[i].char_id &&
-		(sd->status.friends[i].char_id != char_id || sd->status.friends[i].account_id != account_id); i++);
-
-	if(i == MAX_FRIENDS || sd->status.friends[i].char_id == 0)
-		return; //Not found
-
-	WFIFOHEAD(fd,packet_len(0x206));
-	WFIFOW(fd, 0) = 0x206;
-	WFIFOL(fd, 2) = sd->status.friends[i].account_id;
-	WFIFOL(fd, 6) = sd->status.friends[i].char_id;
-	WFIFOB(fd,10) = !online; //Yeah, a 1 here means "logged off", go figure...
-#if PACKETVER >= 20180221
-	safestrncpy(WFIFOCP(fd, 11), sd->status.friends[i].name, NAME_LENGTH);
+	p.packetType = HEADER_ZC_FRIENDS_STATE;
+	p.AID = f.account_id;
+	p.CID = f.char_id;
+	p.offline = !online;
+#if PACKETVER_MAIN_NUM >= 20180307 || PACKETVER_RE_NUM >= 20180221 || PACKETVER_ZERO_NUM >= 20180328
+	safestrncpy( p.name, f.name, sizeof( p.name ) );
 #endif
-	WFIFOSET(fd, packet_len(0x206));
+
+	clif_send( &p, sizeof( p ), &sd.bl, SELF );
 }
 
 
-//Subfunction called from clif_foreachclient to toggle friends on/off [Skotlex]
-int32 clif_friendslist_toggle_sub(map_session_data *sd,va_list ap)
-{
-	uint32 account_id, char_id, online;
-	account_id = va_arg(ap, int32);
-	char_id = va_arg(ap, int32);
-	online = va_arg(ap, int32);
-	clif_friendslist_toggle(sd, account_id, char_id, online);
+// Subfunction called from clif_foreachclient to toggle friends on/off
+int32 clif_friendslist_toggle_sub( map_session_data* tsd, va_list ap ){
+	uint32 account_id = va_arg( ap, uint32 );
+	uint32 char_id = va_arg( ap, uint32 );
+	bool online = va_arg( ap, int32 ) != 0;
+
+	// Seek friend.
+	for( const s_friend& their_friend : tsd->status.friends ){
+		// Cancel early
+		if( their_friend.char_id == 0 ){
+			break;
+		}
+
+		if( their_friend.account_id != account_id ){
+			continue;
+		}
+
+		if( their_friend.char_id != char_id ){
+			continue;
+		}
+
+		clif_friendslist_toggle( *tsd, their_friend, online );
+		return 1;
+	}
+
+	// Not found
 	return 0;
 }
 
 
-/// Sends the whole friends list (ZC_FRIENDS_LIST).
-/// 0201 <packet len>.W { <account id>.L <char id>.L <name>.24B }*
-/// 0201 <packet len>.W { <account id>.L <char id>.L }* >= 20180221
+/// Sends the whole friends list.
+/// 0201 <packet len>.W { <account id>.L <char id>.L <name>.24B }* (ZC_FRIENDS_LIST)
+/// 0201 <packet len>.W { <account id>.L <char id>.L }* >= 20180221 (ZC_FRIENDS_LIST)
 void clif_friendslist_send( map_session_data& sd ){
 	PACKET_ZC_FRIENDS_LIST* p = reinterpret_cast<PACKET_ZC_FRIENDS_LIST*>( packet_buffer );
 
@@ -15251,9 +15373,14 @@ void clif_friendslist_send( map_session_data& sd ){
 	clif_send( p, p->PacketLength, &sd.bl, SELF );
 
 	// Sending the online players
-	for( int32 i = 0; i < MAX_FRIENDS && sd.status.friends[i].char_id; i++ ){
-		if( map_charid2sd( sd.status.friends[i].char_id ) ){
-			clif_friendslist_toggle( &sd, sd.status.friends[i].account_id, sd.status.friends[i].char_id, 1 );
+	for( const s_friend& my_friend : sd.status.friends ){
+		// Cancel early
+		if( my_friend.char_id == 0 ){
+			break;
+		}
+
+		if( map_charid2sd( my_friend.char_id ) ){
+			clif_friendslist_toggle( sd, my_friend, true );
 		}
 	}
 }
@@ -25362,9 +25489,17 @@ void clif_parse_partybooking_reply( int32 fd, map_session_data* sd ){
 #endif
 }
 
+/// /resetskill.
+/// Request to skills.
+/// 0bb1 <type>.W <unknown>.B (CZ_RESET_SKILL)
 void clif_parse_reset_skill( int32 fd, map_session_data* sd ){
 #if PACKETVER_MAIN_NUM >= 20220216 || PACKETVER_ZERO_NUM >= 20220203
 	const PACKET_CZ_RESET_SKILL* p = reinterpret_cast<PACKET_CZ_RESET_SKILL*>( RFIFOP( fd, 0 ) );
+	char cmd[CHAT_SIZE_MAX];
+
+	safesnprintf( cmd, sizeof( cmd ), "%cresetskill", atcommand_symbol );
+
+	is_atcommand( fd, sd, cmd, 1 );
 #endif
 }
 
