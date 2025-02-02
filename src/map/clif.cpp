@@ -12438,7 +12438,7 @@ void clif_parse_ChatRoomStatusChange(int32 fd, map_session_data* sd){
 
 	safestrncpy( s_password, p->password, sizeof( s_password ) );
 	// NOTE: assumes that safestrncpy will not access the len+1'th byte
-	safestrncpy( s_title, p->title, min( len + 1, CHATROOM_TITLE_SIZE ) );
+	safestrncpy( s_title, p->title, std::min<size_t>( len + 1, CHATROOM_TITLE_SIZE ) );
 
 	chat_changechatstatus( sd, s_title, s_password, p->limit, p->type );
 }
@@ -13391,7 +13391,7 @@ void clif_parse_NpcStringInput(int32 fd, map_session_data* sd){
 	message_len++;
 #endif
 
-	safestrncpy( sd->npc_str, p->value, min( message_len, CHATBOX_SIZE ) );
+	safestrncpy( sd->npc_str, p->value, std::min<size_t>( message_len, CHATBOX_SIZE ) );
 
 	if( battle_config.idletime_option&IDLE_NPC_INPUT ){
 		sd->idletime = last_tick;
@@ -13527,7 +13527,6 @@ void clif_parse_InsertCard(int32 fd,map_session_data *sd)
 		return;
 	}
 
-	struct s_packet_db* info = &packet_db[RFIFOW(fd,0)];
 	if (sd->state.trading != 0)
 		return;
 
@@ -13802,9 +13801,6 @@ void clif_parse_CreateParty(int32 fd, map_session_data *sd){
 		return;
 	}
 
-	char* name = RFIFOCP(fd,packet_db[RFIFOW(fd,0)].pos[0]);
-	name[NAME_LENGTH-1] = '\0';
-
 	if( map_getmapflag(sd->bl.m, MF_PARTYLOCK) ) {// Party locked.
 		clif_displaymessage(fd, msg_txt(sd,227));
 		return;
@@ -13813,6 +13809,11 @@ void clif_parse_CreateParty(int32 fd, map_session_data *sd){
 		clif_skill_fail( *sd, 1, USESKILL_FAIL_LEVEL, 4 );
 		return;
 	}
+
+	const PACKET_CZ_MAKE_GROUP* p = reinterpret_cast<PACKET_CZ_MAKE_GROUP*>( RFIFOP( fd, 0 ) );
+	char name[NAME_LENGTH];
+
+	safestrncpy( name, p->name, sizeof( name ) );
 
 	party_create( *sd, name, 0, 0 );
 }
@@ -13823,12 +13824,6 @@ void clif_parse_CreateParty2(int32 fd, map_session_data *sd){
 		return;
 	}
 
-	struct s_packet_db* info = &packet_db[RFIFOW(fd,0)];
-	char* name = RFIFOCP(fd,info->pos[0]);
-	int32 item1 = RFIFOB(fd,info->pos[1]);
-	int32 item2 = RFIFOB(fd,info->pos[2]);
-	name[NAME_LENGTH-1] = '\0';
-
 	if( map_getmapflag(sd->bl.m, MF_PARTYLOCK) ) {// Party locked.
 		clif_displaymessage(fd, msg_txt(sd,227));
 		return;
@@ -13838,7 +13833,12 @@ void clif_parse_CreateParty2(int32 fd, map_session_data *sd){
 		return;
 	}
 
-	party_create( *sd, name, item1, item2 );
+	const PACKET_CZ_MAKE_GROUP2* p = reinterpret_cast<PACKET_CZ_MAKE_GROUP2*>( RFIFOP( fd, 0 ) );
+	char name[NAME_LENGTH];
+
+	safestrncpy( name, p->name, sizeof( name ) );
+
+	party_create( *sd, name, p->item_pickup, p->item_share );
 }
 
 
