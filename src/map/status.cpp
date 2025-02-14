@@ -2784,7 +2784,7 @@ int32 status_calc_mob_(struct mob_data* md, uint8 opt)
 	if (flag&8 && mbl) {
 		struct status_data *mstatus = status_get_base_status(mbl);
 
-		if (mstatus && md->special_state.ai != AI_SPHERE &&
+		if (mstatus != nullptr && md->special_state.ai != AI_SPHERE &&
 			battle_config.slaves_inherit_speed&(status_has_mode(mstatus,MD_CANMOVE)?1:2))
 			status->speed = mstatus->speed;
 		if (status->speed < MIN_WALK_SPEED)
@@ -7909,6 +7909,9 @@ static uint16 status_calc_speed(struct block_list *bl, status_change *sc, int32 
 				val = max(val, 20);
 			if (sc->getSCE(SC_GROUNDGRAVITY))
 				val = max(val, 20);
+			if( sc->getSCE( SC_SHADOW_CLOCK ) != nullptr ){
+				val = max( val, 30 );
+			}
 
 			if( sd && sd->bonus.speed_rate + sd->bonus.speed_add_rate > 0 ) // Permanent item-based speedup
 				val = max( val, sd->bonus.speed_rate + sd->bonus.speed_add_rate );
