@@ -1,0 +1,421 @@
+//===== rAthena Script =======================================
+//= Equipment Upgrades from ROM:EL
+//===== By: ==================================================
+//= adeptfrog
+//===== Description: =========================================
+//= A multi-level upgrade system for Equipments similar to ROM:EL equipment upgrades
+//= Easily manage the upgrade bonuses of your equipments without duplicating them
+//= Downside is, the upgrade system doesn't support any 4 slotted equipments
+//===== Shortcuts: ===========================================
+//= CTRL+F to find these keywords for quick access
+// [I. EQUIPMENT UPGRADE LEVEL MODIFIERS]
+// [II. EQUIPMENT BONUSES]
+// [III. EQUIPMENT REQUIREMENTS]
+//============================================================
+
+-	script	Equipment_Upgrades	-1,{
+OnInit:
+// ==================== [I. EQUIPMENT UPGRADE LEVEL MODIFIERS] ====================
+//              Add your own equipment upgrade level modifier ids here             
+// ================================================================================
+	setarray .enchantIDs[0],
+		50108, 50109, 50110, 50111, 50112, // I - V
+		50113, 50114, 50115, 50116, 50117; // VI - X
+	
+	// DB-related
+	query_sql("CREATE TABLE IF NOT EXISTS `eqp_upgrade_logs` (`char_id` INT NOT NULL, `item` INT NOT NULL, `upgrade_level` INT NOT NULL, `date` INT NOT NULL DEFAULT (CURRENT_DATE)) ENGINE=MyISAM");
+	end;
+}
+
+function	script	GetUpgradeBonus	{
+	// Get the target equipment
+	.@itemid = getequipid(EQI_COMPOUND_ON);
+	.@eqi = callfunc("EQP_TO_EQI",getiteminfo(.@itemid,ITEMINFO_LOCATIONS));
+
+	// Get current upgrade level
+	copyarray .@enchantIDs[0], getvariableofnpc(.enchantIDs[0], "Equipment_Upgrades"), getarraysize(getvariableofnpc(.enchantIDs[0], "Equipment_Upgrades"));
+	for (.@i = 0; .@i < getarraysize(.@enchantIDs); .@i++)
+		if (getequipcardid(.@eqi,3) == .@enchantIDs[.@i]) {
+				.@upgradelvl = .@i + 1;
+				break;
+			}
+
+	// Do nothing if there's no upgrade level
+	if (.@upgradelvl == 0) return;
+
+// ==================== [II. EQUIPMENT BONUSES] ====================
+//             List your equipment upgrade bonuses here             
+// =================================================================
+	switch (.@itemid) {
+		case 1182: // Bloody Eater
+			switch (.@upgradelvl) {
+				case 4: bonus2 bAddEle,Ele_Ghost,50;
+				case 3: bonus bNoMagicDamage,30;
+				case 2: bonus2 bSkillAtk,"KN_BOWLINGBASH",25;
+				case 1: bonus2 bSubRace,RC_DemiHuman,10; bonus2 bSubRace,RC_Player_Human,10;
+					break;
+			}
+			break;
+		case 1223: // Fortune Sword
+			switch (.@upgradelvl) {
+				case 5:
+					if (getrefine() >= 10) bonus2 bIgnoreDefRaceRate,RC_All,50;
+					else if(getrefine() >= 5) bonus2 bIgnoreDefRaceRate,RC_All,35;
+					else bonus2 bIgnoreDefRaceRate,RC_All,20;
+				case 4:
+					if (getrefine() >= 10) bonus2 bSkillAtk,"ASC_BREAKER",35;
+					else if(getrefine() >= 5) bonus2 bSkillAtk,"ASC_BREAKER",25;
+					else bonus2 bSkillAtk,"ASC_BREAKER",15;
+				case 3: bonus bLongAtkRate,5; bonus2 bSkillAtk,"ASC_BREAKER",15;
+				case 2: bonus2 bSkillAtk,"ASC_BREAKER",10;
+				case 1: bonus bInt,20;
+					break;
+			}
+			break;
+		case 1242: // Dagger of Counter
+			switch (.@upgradelvl) {
+				case 5: bonus bDefRatioAtkClass,Class_All; bonus bMdef,-50;
+				case 4: bonus2 bSkillAtk,"HW_MAGICCRASHER",readparam(bDex);
+				case 3: bonus2 bSkillAtk,"HW_MAGICCRASHER",20*getrefine();
+				case 2: bonus bMatkRate,15;
+				case 1: bonus2 bSkillAtk,"HW_MAGICCRASHER",10*getrefine();
+					break;
+			}
+			break;
+		case 1363: // Bloody Axe
+			switch (.@upgradelvl) {
+				case 5: bonus bIgnoreDefRace,RC_All; bonus bSpeedRate,25;
+				case 4: bonus2 bSkillAtk,"MC_MAMMONITE",readparam(bDex);
+				case 3: bonus2 bSkillAtk,"MC_MAMMONITE",3*getrefine();
+				case 2: bonus2 bSkillAtk,"MC_MAMMONITE",readparam(bLuk);
+				case 1: bonus2 bSkillAtk,"MC_MAMMONITE",2*getrefine();
+					break;
+			}
+			break;
+		case 13017: // Ice Pick [1]
+			switch (.@upgradelvl) {
+				case 3: bonus2 bAddClass,Class_All,10;
+				case 2: bonus2 bAddClass,Class_All,5;
+				case 1: bonus2 bAddClass,Class_All,5;
+					break;
+			}
+			break;
+		case 50103: // Costume Fate Magic Book
+			switch (.@upgradelvl) {
+				case 5: bonus2 bSubEle,Ele_Ghost,5; bonus3 bAutoSpell,"PF_SPIDERWEB",1,50;
+				case 4: bonus2 bIgnoreMdefRaceRate,RC_All,3;
+				case 3: bonus3 bAutoSpell,"WZ_HEAVENDRIVE",5,200;
+				case 2: bonus bAtkRange,4;
+				case 1: bonus2 bIgnoreMdefRaceRate,RC_All,2;
+					break;
+			}
+			bonus bMatkRate,.@upgradelvl;
+			bonus bAllStats,.@upgradelvl;
+			break;
+		case 50107: // Costume Fate Wand
+			switch (.@upgradelvl) {
+				case 5: bonus2 bSubEle,Ele_Neutral,5; bonus2 bIgnoreMdefRaceRate,RC_All,20;
+				case 4: bonus bReduceDamageReturn,50;
+				case 3: bonus2 bMagicAtkEle,Ele_Dark,10;
+				case 2: bonus2 bSubRace,RC_DemiHuman,5; bonus2 bSubRace,RC_Player_Human,5;
+				case 1: bonus2 bMagicAtkEle,Ele_Dark,5;
+					break;
+			}
+			bonus bMatkRate,.@upgradelvl;
+			bonus bAllStats,.@upgradelvl;
+			break;
+	}
+	return;
+}
+
+skycity,109,210,4	script	Equipment Upgrade	10183,{
+	mes .npc$;
+	mes "Wanna upgrade your equipments?";
+	switch (select("Later:Proceed")) {
+		case 2: callsub OnUpgrade;
+	}
+	clear;
+	mes .npc$;
+	mes "Have a nice day!";
+	close;
+
+OnInit:
+	function Add; function Check;
+	set .npc$, "[ Equipment Upgrade ]";
+	initnpctimer;
+	end;
+
+OnUpgrade:
+	copyarray .@enchantIDs[0], getvariableofnpc(.enchantIDs[0], "Equipment_Upgrades"), getarraysize(getvariableofnpc(.enchantIDs[0], "Equipment_Upgrades"));
+	set @requirementdata$,"";
+	disable_items;
+	clear;
+	setarray .@indices[1], EQI_HEAD_TOP, EQI_HEAD_MID, EQI_HEAD_LOW, EQI_ARMOR, EQI_GARMENT, EQI_SHOES, EQI_HAND_L, EQI_HAND_R, EQI_ACC_L, EQI_ACC_R, EQI_SHADOW_WEAPON;
+	for(.@i = 1; .@i<getarraysize(.@indices); ++.@i) {
+		if(getequipisequiped(.@indices[.@i])) {
+			.@menu$ = .@menu$ + F_getpositionname(.@indices[.@i]) + "-[" + getequipname(.@indices[.@i]) + "]";
+			.@equipped = 1;
+		}
+		.@menu$ = .@menu$ + ":";
+	}
+
+	// Check if there's any equipment currently equipped
+	Check(.@equipped == 0, "I don't think I can upgrade any equipments you have...");
+
+	mes .npc$;
+	mes "Select the equipment you like to upgrade:";
+	.@part = .@indices[select(.@menu$)];
+
+	// Get the target equipment
+	.@itemid = getequipid(.@part);
+	.@eqi = callfunc("EQP_TO_EQI",getiteminfo(.@itemid,ITEMINFO_LOCATIONS));
+
+	// Save refinement and cards
+	.@refine = getequiprefinerycnt(.@eqi);
+	.@card0 = getequipcardid(.@eqi,0);
+	.@card1 = getequipcardid(.@eqi,1);
+	.@card2 = getequipcardid(.@eqi,2);
+
+	// Get next upgrade level
+	set .@upgradelvl, 1;
+	for (.@i = 0; .@i < getarraysize(.@enchantIDs); .@i++)
+		if (getequipcardid(.@eqi,3) == .@enchantIDs[.@i]) {
+				.@upgradelvl += .@i + 1;
+				break;
+			}
+
+// ==================== [III. EQUIPMENT REQUIREMENTS] ====================
+//                       Check for requirements here                      
+// =======================================================================
+	switch (.@itemid) {
+		case 1182: // Bloody Eater
+			switch (.@upgradelvl) {
+				case 4:
+				case 3:
+				case 2:
+				case 1:
+					Add(4047); Add(5*.@upgradelvl); // Ghostring Card
+					Add(4427); Add(25*.@upgradelvl); // Sword Guardian Card
+					Add(7620); Add(2*.@upgradelvl); // Enriched Oridecon
+					Add(674); Add(100*.@upgradelvl); // Mithril Coin
+					Add(7954); Add(100*.@upgradelvl); // Virtuoso Event Ticket
+					Add(7280); Add(1000*.@upgradelvl); // Credit
+					break;
+			}
+			break;
+		case 1223: // Fortune Sword
+			switch (.@upgradelvl) {
+				case 5:
+				case 4:
+				case 3:
+				case 2:
+				case 1:
+					Add(1233); Add(2*.@upgradelvl); // Exorciser
+					Add(4360); Add(50*.@upgradelvl); // Eremes Guile Card
+					Add(7620); Add(2*.@upgradelvl); // Enriched Oridecon
+					Add(674); Add(100*.@upgradelvl); // Mithril Coin
+					Add(7954); Add(100*.@upgradelvl); // Virtuoso Event Ticket
+					Add(7280); Add(1000*.@upgradelvl); // Credit
+					break;
+			}
+			break;
+		case 1242: // Dagger of Counter
+			switch (.@upgradelvl) {
+				case 5:
+				case 4:
+				case 3:
+				case 2:
+				case 1:
+					Add(1241); Add(2*.@upgradelvl); // Cursed Dagger
+					Add(4425); Add(5*.@upgradelvl); // Atroce Card
+					Add(7620); Add(2*.@upgradelvl); // Enriched Oridecon
+					Add(674); Add(100*.@upgradelvl); // Mithril Coin
+					Add(7954); Add(100*.@upgradelvl); // Virtuoso Event Ticket
+					Add(7280); Add(1000*.@upgradelvl); // Credit
+					break;
+			}
+			break;
+		case 1363: // Bloody Axe
+			switch (.@upgradelvl) {
+				case 5:
+				case 4:
+				case 3:
+				case 2:
+				case 1:
+					Add(1368); Add(2*.@upgradelvl); // Tomahawk
+					Add(4362); Add(50*.@upgradelvl); // Howard Alt-Eisen Card
+					Add(7620); Add(2*.@upgradelvl); // Enriched Oridecon
+					Add(674); Add(100*.@upgradelvl); // Mithril Coin
+					Add(7954); Add(100*.@upgradelvl); // Virtuoso Event Ticket
+					Add(7280); Add(1000*.@upgradelvl); // Credit
+					break;
+			}
+			break;
+		case 13017: // Ice Pick [1]
+			switch (.@upgradelvl) {
+				case 3: Add(4263); Add(50); // Incantation Samurai Card
+				case 2:
+				case 1:
+					Add(7108); Add(100*.@upgradelvl); // Piece of Shield
+					Add(7109); Add(100*.@upgradelvl); // Shining Spear Blade
+					Add(7620); Add(5*.@upgradelvl); // Enriched Oridecon
+					Add(674); Add(100*.@upgradelvl); // Mithril Coin
+					Add(7954); Add(100*.@upgradelvl); // Virtuoso Event Ticket
+					Add(7280); Add(1000*.@upgradelvl); // Credit
+					break;
+			}
+			break;
+		case 50103: // Costume Fate Magic Book
+			switch (.@upgradelvl) {
+				case 5: Add(50040); Add(100); // Amdarais Cursed Crystal
+				case 4: if (.@upgradelvl == 4) { Add(50040); Add(50); } // Amdarais Cursed Crystal
+				case 3:
+				case 2:
+				case 1:
+					Add(30006); Add(2*.@upgradelvl); // Virtuoso Staff
+					Add(50032); Add(5+(5*.@upgradelvl)); // Betelgeuse Soul
+					Add(50033); Add(5+(5*.@upgradelvl)); // Demigod Freyja's Jewel
+					Add(50062); Add(5+(5*.@upgradelvl)); // Bakonawa's Crystal Drop
+					Add(7620); Add(10+(10*.@upgradelvl)); // Enriched Oridecon
+					Add(674); Add(100*.@upgradelvl); // Mithril Coin
+					Add(7954); Add(100*.@upgradelvl); // Virtuoso Event Ticket
+					Add(7280); Add(1000*.@upgradelvl); // Credit
+					break;
+			}
+			break;
+		case 50107: // Costume Fate Wand
+			switch (.@upgradelvl) {
+				case 5: Add(50040); Add(100); // Amdarais Cursed Crystal
+				case 4: if (.@upgradelvl == 4) { Add(50040); Add(50); } // Amdarais Cursed Crystal
+				case 3:
+				case 2:
+				case 1:
+					Add(30006); Add(2*.@upgradelvl); // Virtuoso Staff
+					Add(50032); Add(5+(5*.@upgradelvl)); // Betelgeuse Soul
+					Add(50033); Add(5+(5*.@upgradelvl)); // Demigod Freyja's Jewel
+					Add(50062); Add(5+(5*.@upgradelvl)); // Bakonawa's Crystal Drop
+					Add(7620); Add(10+(10*.@upgradelvl)); // Enriched Oridecon
+					Add(674); Add(100*.@upgradelvl); // Mithril Coin
+					Add(7954); Add(100*.@upgradelvl); // Virtuoso Event Ticket
+					Add(7280); Add(1000*.@upgradelvl); // Credit
+					break;
+			}
+			break;
+	}
+
+	// Unfortunately, the upgrade system doesn't support any 4 slotted equipments
+	Check(getequipcardcnt(.@eqi) > 3, "I cannot upgrade any 4 slotted equipments, sorry...");
+
+	// Do nothing if it doesn't have any upgrade bonus or if its already at max upgrade level
+	Check(@requirementdata$ == "", "I don't think I can upgrade this equipment any further.");
+
+	// Must have only ONE equipment on the inventory/equip to prevent deleting the wrong one
+	Check(countitem(.@itemid) != 1, "You must have only ^FF0000ONE^000000 of this equipment on your inventory to proceed.");
+
+	// List the upgrade requirements
+	clear;
+	mes .npc$;
+	mes "You are upgrading "+mesitemlink(.@itemid)+" from Upgrade - "+callfunc("NUM_TO_RN",(.@upgradelvl-1))+" -> Upgrade - "+callfunc("NUM_TO_RN",(.@upgradelvl));
+	next;
+	mes .npc$;
+	mes "These are the requirements for upgrading this equipment:";
+	explode(.@requirements$, @requirementdata$, ":");
+	for (.@i = 0; .@i < getarraysize(.@requirements$); .@i += 2)
+		mes " > "+.@requirements$[.@i + 1]+"x "+mesitemlink(atoi(.@requirements$[.@i]));
+	
+	next;
+	mes .npc$;
+	mes "Proceed with the upgrade?";
+	Check(select("Later:Yes") == 1, "Come back if you are ready to upgrade your equipment.");
+
+	// Check for the requirements first
+	.@passed = 1;
+	for (.@i = 0; .@i < getarraysize(.@requirements$); .@i += 2)
+		if (countitem(atoi(.@requirements$[.@i])) < atoi(.@requirements$[.@i + 1])) {
+			.@passed = 0;
+			break;
+		}
+	
+	// Cancel if requirements are not met
+	Check(.@passed == 0, "You are not ready to upgrade this equipment yet, go collect more materials first.");
+
+	// Pay for the upgrade
+	for (.@i = 0; .@i < getarraysize(.@requirements$); .@i += 2)
+		delitem atoi(.@requirements$[.@i]), atoi(.@requirements$[.@i + 1]);
+	
+	// Exchange the current equipment and upgraded equipment
+	delitem .@itemid, 1;
+	getitem2 .@itemid, 1, 1, .@refine, 0, .@card0, .@card1, .@card2, .@enchantIDs[.@upgradelvl - 1];
+
+	specialeffect2 EF_CRIMSON_STR;
+	specialeffect2 EF_STASIS;
+	specialeffect2 EF_PRIMECHARGE;
+
+	clear;
+	mes .npc$;
+	mes "Congratulations on your successful upgrade!";
+	announce "[Equipment Upgrade] Congratulations to "+strcharinfo(0)+" for upgrading their equipment from "+callfunc("NUM_TO_RN",(.@upgradelvl-1))+" to "+callfunc("NUM_TO_RN",(.@upgradelvl))+"!",bc_all;
+	query_sql("INSERT INTO `eqp_upgrade_logs` (`char_id`,`item`,`upgrade_level`) VALUES ('" + getcharid(0) + "','" + .@itemid + "','" + .@upgradelvl + "')");
+	close;
+
+OnTimer1000:
+	showscript("Equipment Upgrade");
+	setnpctimer 0;
+	end;
+
+	function Add { // args: 0 = new element
+		set @requirementdata$, @requirementdata$ != "" ? @requirementdata$ + ":" + getarg(0) : getarg(0);
+		return;
+	}
+
+	function Check { // args: 0 = condition, 1 = the message if the condition were met
+		if (getarg(0)) {
+			clear;
+			mes .npc$;
+			mes getarg(1);
+			close;
+		}
+	}
+}
+
+function	script	EQP_TO_EQI	{ // args: 0 = EQP; returns EQI
+	switch (getarg(0)) {
+		case EQP_ACC_L: return EQI_ACC_L;
+		case EQP_ACC_R: return EQI_ACC_R;
+		case EQP_SHOES: return EQI_SHOES;
+		case EQP_GARMENT: return EQI_GARMENT;
+		case EQP_HEAD_LOW: return EQI_HEAD_LOW;
+		case EQP_HEAD_MID: return EQI_HEAD_MID;
+		case EQP_HEAD_TOP: return EQI_HEAD_TOP;
+		case EQP_ARMOR: return EQI_ARMOR;
+		case EQP_HAND_L: return EQI_HAND_L;
+		case EQP_Both_Hand: case EQP_HAND_R: return EQI_HAND_R;
+		case EQP_COSTUME_HEAD_TOP: return EQI_COSTUME_HEAD_TOP;
+		case EQP_COSTUME_HEAD_MID: return EQI_COSTUME_HEAD_MID;
+		case EQP_COSTUME_HEAD_LOW: return EQI_COSTUME_HEAD_LOW;
+		case EQP_COSTUME_GARMENT: return EQI_COSTUME_GARMENT;
+		case EQP_SHADOW_ARMOR: return EQI_SHADOW_ARMOR;
+		case EQP_SHADOW_WEAPON: return EQI_SHADOW_WEAPON;
+		case EQP_SHADOW_SHIELD: return EQI_SHADOW_SHIELD;
+		case EQP_SHADOW_SHOES: return EQI_SHADOW_SHOES;
+		case EQP_SHADOW_ACC_R: return EQI_SHADOW_ACC_R;
+		case EQP_SHADOW_ACC_L: return EQI_SHADOW_ACC_L;
+	}
+	return -1;
+}
+
+function	script	NUM_TO_RN	{
+	switch (getarg(0)) {
+		case  1: return "I";
+		case  2: return "II";
+		case  3: return "III";
+		case  4: return "IV";
+		case  5: return "V";
+		case  6: return "VI";
+		case  7: return "VII";
+		case  8: return "VIII";
+		case  9: return "IX";
+		case 10: return "X";
+	}
+	return "0";
+}
