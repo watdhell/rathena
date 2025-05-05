@@ -1,0 +1,279 @@
+/*
+	Author: Nyani
+	Version 1.5
+	----------------------------------------------
+	Barricade Controller + Misc Controls for Events
+	----------------------------------------------
+	Changelogs:
+	1.0 # Initial Release # 11/19/23
+	1.1 # Added flexibiliy on maps # 11/20/23
+	1.2 # Fixed an issue with party recalls # 11/22/23
+	1.3 # Fixed an issue with addrid not working properly # 11/22/23
+	1.4 # Optimized logic when using @event command # 11/22/23
+	1.5 # Simplified @event command # 11/23/23
+	
+	Note: This script is for free -- if you find any bugs, feel free to inform me or post on rAthena forums
+	
+	Make sure to double check your mapflags for your maps and adjust accordingly
+*/
+guild_vs1,1,1,1	script	EventController#main	-1,{
+OnBarriDead:
+end;
+OnSupplyDistri:
+	addrid(5,0,.map_name$);
+	for(.@i = 0; .@i < getarraysize(.supply_ids); .@i++)
+		getitembound .supply_ids[.@i],.supply_amt[.@i],Bound_Char;
+	announce "[ "+.gm_name$+" ]: Supplies have been given to both sides.",0;
+end;
+OnDebuff:
+	announce "[ "+.gm_name$+" ]: Buffs from both sides will now be removed.",0;
+	atcommand "@doommap";
+	sleep2 500;
+	atcommand "@revive";
+end;
+OnPartyRecall:
+	if(.map_name$ == "guild_vs1"){ .xl = 7; .yl = 50; .xr = 91; .yr = 50; }
+	if(.map_name$ == "2012rwc_06"){ .xl = 121; .yl = 157; .xr = 233; .yr = 159; }
+	if(.map_name$ == "2012rwc_08"){ .xl = 63; .yl = 92; .xr = 196; .yr = 92; }
+	//if(.map_name$ == "new_map_here"){ .xl = leftx; .yl = lefty; xr = rightx; yr = righty; }
+	mes "[ Event Manager ]";
+	mes "Please put first party leader name.";
+	input .@pt_1$;
+	.pt_1 = getcharid(1,.@pt_1$);
+	if(.pt_1 == 0){
+		clear;
+		mes "[ Event Manager ]";
+		mes .@pt_1$+" does not have a party.";
+		close;
+	}
+	clear;
+	mes "[ Event Manager ]";
+	mes "Please put second party leader name.";
+	input .@pt_2$;
+	.pt_2 = getcharid(1,.@pt_2$);
+	if(.pt_2 == 0){
+		clear;
+		mes "[ Event Manager ]";
+		mes .@pt_2$+" does not have a party.";
+		close;
+	}
+	close2;
+	announce "[ "+.gm_name$+" ]: I am now recalling party members!",0;
+	warpparty .map_name$,.xl,.yl, .pt_1;
+	sleep2 1000;
+	warpparty .map_name$,.xr,.yr, .pt_2;
+end;
+OnPartyCount:
+	announce "[ "+.gm_name$+" ]: I am now checking party members in the map!",0;
+	mes "[ Event Manager ]";
+	mes "Please put first party leader name.";
+	input .@pt_1$;
+	.@pt_1 = getcharid(1,.@pt_1$);
+	if(.@pt_1 == 0){
+		clear;
+		mes "[ Event Manager ]";
+		mes .@pt_1$+" does not have a party.";
+		close;
+	}
+	clear;
+	mes "[ Event Manager ]";
+	mes "Please put second party leader name.";
+	input .@pt_2$;
+	.@pt_2 = getcharid(1,.@pt_2$);
+	if(.@pt_2 == 0){
+		clear;
+		mes "[ Event Manager ]";
+		mes .@pt_2$+" does not have a party.";
+		close;
+	}
+	getpartymember .@pt_1, 1;
+	getpartymember .@pt_1, 2;
+	for ( .@i = 0; .@i < $@partymembercount; .@i++ )
+		if ( isloggedin( $@partymemberaid[.@i], $@partymembercid[.@i] ) )
+			.@count_online1++;
+	getpartymember .@pt_2, 1;
+	getpartymember .@pt_2, 2;
+	for ( .@i = 0; .@i < $@partymembercount; .@i++ )
+		if ( isloggedin( $@partymemberaid[.@i], $@partymembercid[.@i] ) )
+			.@count_online2++;
+	clear;
+	.@party1$ = getpartyname(.@pt_1);
+	.@party2$ = getpartyname(.@pt_2);
+	mes "[ Event Manager ]";
+	mes .@party1$+" online members: "+.@count_online1;
+	mes .@party2$+" online members: "+.@count_online2;
+	close;
+end;
+OnEventStart:
+	if(.event_active == 1){
+		message strcharinfo(0),"Event is already active.";
+		end;
+	}
+	announce "[ "+.gm_name$+" ]: Event will begin in 30 seconds! All sides, prepare for battle!",0;
+	initnpctimer;
+	.event_active = 1;
+end;
+OnEventStop:
+	if(.event_active != 1){
+		message strcharinfo(0),"Event is not active.";
+		end;
+	}
+	announce "[ "+.gm_name$+" ]: Event has been stopped! Please wait for further announcements!",0;
+	gvgoff .map_name$;
+	.event_active = 0;
+	stopnpctimer;
+	if(.barricade == 0){ //barricades were removed
+		.barricade = 1; //resetting barricades
+	//guild_vs1 - right
+	setwall "guild_vs1",87,51,4,4,1,"barrier1";
+	for(.@i = 48; .@i < 52; .@i++)
+		monster "guild_vs1",87,.@i,"Barrier",1905,1,strnpcinfo(0)+"::OnBarriDead";
+	//guild_vs2 - left-side
+	setwall "guild_vs1",12,51,4,4,1,"barrier2";
+	for(.@i = 48; .@i < 52; .@i++)
+		monster "guild_vs1",12,.@i,"Barrier",1905,1,strnpcinfo(0)+"::OnBarriDead";
+	//2012rwc_06 - right
+	setwall "2012rwc_06",219,161,10,4,1,"barrier3";
+	for(.@i = 152; .@i < 162; .@i++)
+		monster "2012rwc_06",219,.@i,"Barrier",1905,1,strnpcinfo(0)+"::OnBarriDead";
+	//2012rwc_06 - left
+	setwall "2012rwc_06",134,162,10,4,1,"barrier4";
+	for(.@i = 151; .@i < 162; .@i++)
+		monster "2012rwc_06",134,.@i,"Barrier",1905,1,strnpcinfo(0)+"::OnBarriDead";
+	//2012rwc_08 - right
+	setwall "2012rwc_08",187,95,8,4,1,"barrier5";
+	for(.@i = 88; .@i < 95; .@i++)
+		monster "2012rwc_08",187,.@i,"Barrier",1905,1,strnpcinfo(0)+"::OnBarriDead";
+	//2012rwc_08 - left
+	setwall "2012rwc_08",72,95,8,4,1,"barrier6";
+	for(.@i = 88; .@i < 95; .@i++)
+		monster "2012rwc_08",72,.@i,"Barrier",1905,1,strnpcinfo(0)+"::OnBarriDead";
+	}
+end;
+OnTimer25000: 
+	addrid(5,0,.map_name$);
+	showdigit 5,0;
+end;
+OnTimer26000:
+	addrid(5,0,.map_name$);
+	showdigit 4,0;
+end;
+OnTimer27000:
+	addrid(5,0,.map_name$);
+	showdigit 3,0;
+end;
+OnTimer28000:
+	addrid(5,0,.map_name$);
+	showdigit 2,0;
+end;
+OnTimer29000:
+	addrid(5,0,.map_name$);
+	showdigit 1,0;
+end;
+OnTimer30000:
+	.barricade = 0;
+	killmonster "guild_vs1","All";
+	killmonster "2012rwc_06","All";
+	killmonster "2012rwc_08","All";
+	delwall "barrier1";
+	delwall "barrier2";
+	delwall "barrier3";
+	delwall "barrier4";
+	delwall "barrier5";
+	delwall "barrier6";
+	stopnpctimer;
+	announce "[ "+.gm_name$+" ]: Let the match begin!!!",0;
+	gvgon .map_name$;
+	addrid(5,0,.map_name$);
+	emotion ET_GO,getattachedrid();
+end;
+OnEventSelect:
+	.map_name$ = strcharinfo(3);
+	.gm_name$ = strcharinfo(0);
+	
+	for(.@i = 0; .@i < 3; .@i++){
+		if(.map_name$ == .map$[.@i])
+			.@pass++;
+	}
+	if(!.@pass) goto OnFail;
+	if(strcmp(.@atcmd_parameters$[0],"left") == 0){
+		if(.map_name$ == "guild_vs1")
+			warp .map_name$,7,50;
+		else if(.map_name$ == "2012rwc_06")
+			warp .map_name$,121,157;
+		else if(.map_name$ == "2012rwc_08")
+			warp .map_name$,63,92;
+	}
+	if(strcmp(.@atcmd_parameters$[0],"right") == 0){
+		if(.map_name$ == "guild_vs1")
+			warp .map_name$,91,50;
+		else if(.map_name$ == "2012rwc_06")
+			warp .map_name$,233,159;
+		else if(.map_name$ == "2012rwc_08")
+			warp .map_name$,196,92;
+	}
+	if(strcmp(.@atcmd_parameters$[0],"recall") == 0)
+		goto OnPartyRecall;
+	if(strcmp(.@atcmd_parameters$[0],"debuff") == 0)
+		goto OnDebuff;
+	if(strcmp(.@atcmd_parameters$[0],"supply") == 0)
+		goto OnSupplyDistri;
+	if(strcmp(.@atcmd_parameters$[0],"start") == 0)
+		goto OnEventStart;
+	if(strcmp(.@atcmd_parameters$[0],"stop") == 0)
+		goto OnEventStop;
+	if(strcmp(.@atcmd_parameters$[0],"partycount") == 0)
+		goto OnPartyCount;
+	else{
+		OnFail:
+		dispbottom "@event usage: ";
+		dispbottom "------------------";
+		dispbottom "@event left (teleport left-side)";
+		dispbottom "@event right ((teleport right-side)";
+		dispbottom "@event recall (recall parties)";
+		dispbottom "@event debuff (debuff all)";
+		dispbottom "@event supply (give supply all)";
+		dispbottom "@event start (start event)";
+		dispbottom "@event stop (stop event)";
+		dispbottom "@event partycount (count online members)";
+		dispbottom "------------------";
+	}
+end;
+OnInit:
+	bindatcmd "event",strnpcinfo(3) + "::OnEventSelect",99; //admin only, adjust accordingly
+	//set your supplies if you wish
+	setarray .supply_ids, 501,502,503;
+	setarray .supply_amt, 1  ,2  ,3;
+	//add maps that you want to allow the @event command to work on
+	//make sure to update the OnPartyRecall event as well
+	//make sure you add setwall and barricade spawns on those new maps as well
+	setarray .map$, "guild_vs1", "2012rwc_06", "2012rwc_08";
+	//guild_vs1 - right
+	setwall "guild_vs1",87,51,4,4,1,"barrier1";
+	for(.@i = 48; .@i < 52; .@i++)
+		monster "guild_vs1",87,.@i,"Barrier",1905,1,strnpcinfo(0)+"::OnBarriDead";
+	//guild_vs2 - left-side
+	setwall "guild_vs1",12,51,4,4,1,"barrier2";
+	for(.@i = 48; .@i < 52; .@i++)
+		monster "guild_vs1",12,.@i,"Barrier",1905,1,strnpcinfo(0)+"::OnBarriDead";
+	//2012rwc_06 - right
+	setwall "2012rwc_06",219,161,10,4,1,"barrier3";
+	for(.@i = 152; .@i < 162; .@i++)
+		monster "2012rwc_06",219,.@i,"Barrier",1905,1,strnpcinfo(0)+"::OnBarriDead";
+	//2012rwc_06 - left
+	setwall "2012rwc_06",134,162,10,4,1,"barrier4";
+	for(.@i = 151; .@i < 162; .@i++)
+		monster "2012rwc_06",134,.@i,"Barrier",1905,1,strnpcinfo(0)+"::OnBarriDead";
+	//2012rwc_08 - right
+	setwall "2012rwc_08",187,95,8,4,1,"barrier5";
+	for(.@i = 88; .@i < 95; .@i++)
+		monster "2012rwc_08",187,.@i,"Barrier",1905,1,strnpcinfo(0)+"::OnBarriDead";
+	//2012rwc_08 - left
+	setwall "2012rwc_08",72,95,8,4,1,"barrier6";
+	for(.@i = 88; .@i < 95; .@i++)
+		monster "2012rwc_08",72,.@i,"Barrier",1905,1,strnpcinfo(0)+"::OnBarriDead";
+	/* Do not touch */
+	.barricade = 1; //resets variable for checking if barricade is active or not
+	.event_active = 0; //resets variable for checking if event is active or not
+end;
+}
