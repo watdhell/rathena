@@ -1,0 +1,60 @@
+prontera,155,93,4	script	Skill Point Seller	100,{
+	mes "[Skill Seller Meng]";
+	mes "Hi, i can sell you Skill Points.";
+	mes "I need a few items per Skill Point to do so though.";
+	next;
+	mes "[Skill Seller Meng]";
+	for(.@i = 0; .@i < .priceItemSize; .@i += 2)
+		mes .priceItems[.@i + 1] + " x ^FF0000" + getitemname(.priceItems[.@i]) + "^000000";
+	next;
+	mes "[Skill Seller Meng]";
+	mes "Thats all the items i need.";
+	next;
+	mes "[Skill Seller Meng]";
+	mes "I almost forgot, i also need";
+	mes .cashpointPrice + " ^FF0000Cash Points^000000";
+	mes "as a payment for the process.";
+	next;
+	if(select("Yes:No") == 2) {
+		mes "[Skill Seller Meng]";
+		mes "Just talk to me if you change your mind.";
+		close;
+	}
+
+	mes "[Skill Seller Meng]";
+	mes "Please input how many skill points you want to buy or enter 0 to cancel";
+	input .@points;
+	next;
+	mes "[Skill Seller Meng]";
+	if(!.@points) {
+		mes "You have canceled buying.";
+		close;
+	}
+
+	if(#CASHPOINTS < .cashpointPrice) {
+		mes "You don't have enough ^FF0000Cash Points^000000!";
+		close;
+	}
+
+	for(.@i = 0; .@i < .priceItemSize; .@i += 2) {
+		if(countitem(.priceItems[.@i]) < .@points * .priceItems[.@i + 1]) {
+			mes "You don't have enough ^FF0000" + getitemname(.priceItems[.@i]) + "^000000!";
+			close;
+		}
+	}
+
+	#CASHPOINTS -= 200;
+	for(.@i = 0; .@i < .priceItemSize; .@i += 2)
+		delitem(.priceItems[.@i], .@points * .priceItems[.@i + 1]);
+
+	SkillPoint += .@points;
+	mes "There you go.";
+	mes "Come by again.";
+	end;
+
+	OnInit:
+		setarray(.priceItems[0], 7018, 5, 7020, 5, 938, 300, 7122, 150, 7097, 100); // Edit Item ID use
+		.cashpointPrice = 200;
+		.priceItemSize = getarraysize(.priceItems);
+
+}

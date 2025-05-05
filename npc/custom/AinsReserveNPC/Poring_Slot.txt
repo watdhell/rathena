@@ -1,0 +1,402 @@
+prontera, 155, 151, 4	script	Poring Slots	562,{
+	if($@slotsRunning == true) {
+		mes "[ ^0F4DD3" + .npcName$ + "^000000 ]";
+		mes "The wheel is currently running, please come back later!";
+		close;
+	}
+
+	query_sql("SELECT price FROM poring_slot_winners WHERE char_id = " + getcharid(0) + ";", .@price);
+	if(.@price > 0) {
+		mes "[ ^0F4DD3" + .npcName$ + "^000000 ]";
+		mes "Congratulations, you have prices i can give you!";
+		mes "Here you go!";
+		getitem($@betItemId, .@price);
+		query_sql("DELETE FROM poring_slot_winners WHERE char_id = " + getcharid(0) + ";");
+		close;
+	}
+
+	mes "[ ^0F4DD3" + .npcName$ + "^000000 ]";
+	mes "Welcome!";
+	mes "Do you want to do a Spin?";
+	mes "One costs ^0000FF" + .spinPrice + "^000000 x ^00AA55" + getitemname($@betItemId) + "^000000.";
+	next;
+
+	if(select("Spin now!:No") == 2) {
+		mes "[ ^0F4DD3" + .npcName$ + "^000000 ]";
+		mes "Come back anytime if you change your mind!";
+		close;
+	}
+
+	if(countitem($@betItemId) < .spinPrice) {
+		mes "[ ^0F4DD3" + .npcName$ + "^000000 ]";
+		mes "You only have ^0000FF" + countitem($@betItemId) + "^000000 x ^00AA55" + getitemname($@betItemId) + "^000000.";
+		mes "That is not enough for a Spin.";
+		close;
+	}
+
+	query_sql("SELECT COUNT(*) FROM poring_slot_bets;", .@betCount);
+ 	if(.@betCount < .minBetsToSpin) {
+		mes "[ ^0F4DD3" + .npcName$ + "^000000 ]";
+		mes "There aren't enough bets. There need to be atleast ^0000FF" + .minBetsToSpin + "^000000 bets before we can start.";
+		mes "Currently there are ^0000FF" + .@betCount + "^000000 registered bets.";
+		close;
+	}
+
+	mes "[ ^0F4DD3" + .npcName$ + "^000000 ]";
+	mes "Ready when you are!";
+	close2;
+
+	delitem($@betItemId, $@spinPrice);
+	$@slotsRunning = true;	
+	callsub(F_StopIdleAnimation);
+	sleep(500);
+	announce "[ " + .npcName$ + " ] : The wheel of fortune starts to spin soon!", bc_all, 0x00ff99;
+	npctalk "The Spin will start soon! I'll start the countdown right away!";
+	callsub(F_StartBlinkAnimation, 3, 100);
+	npctalk "10!";
+	callsub(F_StartBlinkAnimation);
+	npctalk "9!";
+	callsub(F_StartBlinkAnimation);
+	npctalk "8!";
+	callsub(F_StartBlinkAnimation);
+	npctalk "7!";
+	callsub(F_StartBlinkAnimation);
+	npctalk "6!";
+	callsub(F_StartBlinkAnimation);
+	npctalk "5!";
+	announce "[ " + .npcName$ + " ] : 5 seconds to go!", bc_all, 0x00ff99;
+	callsub(F_StartBlinkAnimation);
+	npctalk "4!";
+	callsub(F_StartBlinkAnimation);
+	npctalk "3!";
+	callsub(F_StartBlinkAnimation);
+	npctalk "2!";
+	callsub(F_StartBlinkAnimation);
+	npctalk "1!";
+	callsub(F_StartBlinkAnimation);
+	npctalk "GO!";
+	announce "[ " + .npcName$ + " ] : The wheel of fortune is running!", bc_all, 0x00ff99;
+	callsub(F_StartBlinkAnimation, 3, 100);
+
+	.@rand = rand(28, 112);
+	.@prog = 300 / .@rand;
+	.@currSpeed = 1;
+
+	for(.@i = 0; .@i < .@rand; .@i++) {
+		.@pos = (.@i) % 28;
+
+		callsub(F_LightSlot, .@pos);
+		sleep(.@currSpeed);
+
+		if(.@i < .@rand - 1) {
+			callsub(F_ClearSlot, .@pos);
+			sleep(.@currSpeed);
+		}
+
+		.@currSpeed += .@prog;
+	}
+
+	.@winSlotId = .slots[(.@pos * 4) + 3];
+	.@winIndex = inarray($@slotIds[0], .@winSlotId);
+
+	announce "[ " + .npcName$ + " ] : The wheel stopped on " + .slotNames$[.@winIndex] + "!", bc_all, 0x00ff99;
+
+	if(.@winSlotId != .blankId) {
+		specialeffect(610);
+		donpcevent(.slotSelectUniqueNames$[.@winIndex] + "::OnEffect");
+		.@coinsPerBet = $@slotCoinsPerBet[.@winIndex];			
+		query_sql("INSERT poring_slot_winners (char_id, price) SELECT char_id, (bet * " + .@coinsPerBet + ") FROM poring_slot_bets WHERE slot_id = " + .@winSlotId + " ON DUPLICATE KEY UPDATE poring_slot_winners.price = poring_slot_winners.price + (poring_slot_bets.bet * " + .@coinsPerBet + ");");
+		announce "[ " + .npcName$ + " ] : Congratulation to all winners!", bc_all, 0x00ff99;
+	}
+
+	if(.@winSlotId == .blankId) {
+		announce "[ " + .npcName$ + " ] : Too bad.. To everyone that participated please try again.", bc_all, 0x00ff99;
+		specialeffect(611);
+	}
+
+	query_sql("TRUNCATE poring_slot_bets;");
+
+	for(.@i = 0; .@i < getarraysize(.slotSelectUniqueNames$); .@i++)
+		donpcevent(.slotSelectUniqueNames$[.@i] + "::OnResetRoom");
+
+	sleep(2500);
+	callsub(F_ClearSlot, .@pos);
+	sleep(2000);
+
+	$@slotsRunning = 0;
+	callsub(F_StartIdleAnimation);
+	end;
+
+	F_LightSlot:
+		donpcevent(.slotUniqueNames$[getarg(0)] + "::OnLightOn");
+		return;
+
+	F_LightSlots:
+		for(.@i = 0; .@i < .slotCount; .@i++)
+			callsub(F_LightSlot, .@i);
+		return;
+
+	F_ClearSlot:
+		donpcevent(.slotUniqueNames$[getarg(0)] + "::OnLightOff");
+		return;
+
+	F_ClearSlots:
+		for(.@i = 0; .@i < .slotCount; .@i++)
+			callsub(F_ClearSlot, .@i);
+		return;
+
+	F_StartIdleAnimation:
+		.stopIdleAnim = false;
+		.@pauseIdleAnim = false;
+		.@pos = .slotCount;
+		.@resetPos = .slotCount * 4;
+
+		freeloop(1);
+		while(true) {
+			.@lightSlotPos = .@pos % 28;
+			.@clearSlotPos = (.@pos - 5) % 28;
+
+			if(.stopIdleAnim == true || .@pauseIdleAnim == true) { 
+				if(.@lightSlotPos == 0)
+					.@lightSlotOff = true;
+
+				if(.@clearSlotPos == 0)
+					.@clearSlotOff = true;
+			}
+
+			if(.@lightSlotOff == false)
+				callsub(F_LightSlot, .@lightSlotPos);
+			
+			sleep(100);
+
+			if(.@clearSlotOff == false)
+				callsub(F_ClearSlot, .@clearSlotPos);
+
+			.@pos++;
+			if(.@pos == .@resetPos)
+				.@pauseIdleAnim = true;
+
+			if(.@lightSlotOff == true && .@clearSlotOff == true) {
+				if(.@pauseIdleAnim == true) {
+					callsub(F_StartBlinkAnimation, 3, 250);
+					.@pauseIdleAnim = false;
+					.@lightSlotOff = false;
+					.@clearSlotOff = false;
+					.@pos = .slotCount;
+				}
+			}
+
+			if(.stopIdleAnim == true) {
+				callsub(F_ClearSlots);
+				break;
+			}
+		}
+		freeloop(0);
+		return;
+
+	F_StopIdleAnimation:
+		.stopIdleAnim = true;
+		callsub(F_StopBlinkAnimation);
+		return;
+
+	F_StartBlinkAnimation:
+		.stopBlinkAnim = false;
+
+		.@speed = getarg(1, 500);
+
+		for(.@y = 0; .@y < getarg(0, 1); .@y++) {
+			callsub(F_LightSlots, .@i);
+			sleep(.@speed);
+			for(.@i = 0; .@i < .slotCount; .@i++)
+				callsub(F_ClearSlot, .@i);
+			sleep(.@speed);
+
+			if(.stopBlinkAnim == true)
+				break;
+		}
+		return;
+
+	F_StopBlinkAnimation:
+		.stopBlinkAnim = true;
+		return;
+
+	F_Install:
+		query_sql(
+			"CREATE TABLE IF NOT EXISTS poring_slot_bets (" +
+			"char_id int(11) NOT NULL," + 
+			"slot_id int(11) NOT NULL," + 
+			"bet int(11) NOT NULL" + 
+			") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;"
+		);
+		
+		query_sql(
+			"CREATE TABLE IF NOT EXISTS poring_slot_winners (" + 
+			"char_id int(11) NOT NULL," + 
+			"price int(11) NOT NULL" + 
+			") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;"
+		);
+
+		query_sql("ALTER TABLE poring_slot_bets ADD UNIQUE KEY IF NOT EXISTS char_id (char_id, slot_id);");
+		query_sql("ALTER TABLE poring_slot_winners ADD PRIMARY KEY IF NOT EXISTS (char_id);");
+		return;
+
+	OnUninstall:
+			query_sql("DROP TABLE IF EXISTS poring_slot_winners;");
+			query_sql("DROP TABLE IF EXISTS poring_slot_bets;");
+
+			dispbottom("Uninstall sucessfull.");
+		end;
+
+	OnPCLoginEvent:
+		query_sql("SELECT price FROM poring_slot_winners WHERE char_id = " + getcharid(0) + ";", .@currPrice);
+		if(.@currPrice > 0)
+			dispbottom("You have a pending price of " + .@currPrice + " x " + getitemname($@betItemId) + " at the slot!");
+		end;
+
+	OnInit:
+		callsub(F_Install);
+		.npcName$ = strnpcinfo(1);
+
+		setarray .slots[0], 
+		147, 156, 4, 1002,
+		149, 156, 4, 1613,
+		151, 156, 4, 1002,
+		153, 156, 4, 1062,
+		155, 156, 4, 1031,
+		157, 156, 4, 1002,
+		159, 156, 4, 1002,
+		161, 156, 4, 1062,
+		163, 156, 4, 1002,
+		163, 154, 5, 1031,
+		163, 152, 5, 1002,
+		163, 150, 5, 1062,
+		163, 148, 5, 1002,
+		163, 146, 5, 1113,
+		163, 144, 5, 1613,
+		161, 144, 5, 1002,
+		159, 144, 5, 1062,
+		157, 144, 5, 1002,
+		155, 144, 5, 1388,
+		153, 144, 5, 1062,
+		151, 144, 5, 1031,
+		149, 144, 5, 1002,
+		147, 144, 3, 1113,
+		147, 146, 3, 1002,
+		147, 148, 3, 1062,
+		147, 150, 3, 1031,
+		147, 152, 3, 1002,
+		147, 154, 3, 1002;
+
+		.slotCount = getarraysize(.slots) / 4;
+
+		.spinPrice = 5;
+		.minBetsToSpin = 1;
+		.blankId = 1113;
+		$@slotsRunning = false;
+		$@betItemId = 7539;
+		$@minBet = 1;
+
+		setarray $@slotIds[0], 1002, 1062, 1031, 1613, 1388, 1113;
+		setarray $@slotColors$[0], "FF33FF", "F31010", "1FDA33", "AD1FDA", "33B8FF", "";
+		setarray $@slotCoinsPerBet[0], 2, 3, 5, 9, 17, 0;
+		setarray .slotNames$[0], "Pink", "Red", "Green", "Purple", "Blue", "Blank";
+		setarray .slotSelectX[0], 144, 144, 144, 144, 144;
+		setarray .slotSelectY[0], 155, 149, 152, 146, 143;
+
+		for(.@i = 0; .@i < .slotCount; .@i++) {
+			.@index = .@i * 4;
+			.slotUniqueNames$[.@i] = duplicate("Slot", strnpcinfo(4), .slots[.@index], .slots[.@index + 1], $@slotNames$[inarray($@slotIds[0], .slots[.@index + 3])], .slots[.@index + 3], .slots[.@index + 2]);
+		}
+
+		for(.@i = 0; .@i < getarraysize(.slotSelectX); .@i++) {
+			.@slotId = $@slotIds[.@i];
+			.slotSelectUniqueNames$[.@i] = duplicate("SlotSelect", strnpcinfo(4), .slotSelectX[.@i], .slotSelectY[.@i], .slotNames$[.@i] + "#" + .@slotId, .@slotId, 4);
+		}
+
+		bindatcmd("uninstallSlot", strnpcinfo(3) + "::OnUninstall", 99);
+
+		callsub(F_StartIdleAnimation);
+}
+
+-	script	SlotSelect	FAKE_NPC,{
+	.@slotId = strnpcinfo(2);
+	.@slotIndex = inarray($@slotIds[0], .@slotId)];
+	.@coinsPerBet = $@slotCoinsPerBet[.@slotIndex];
+	.@slotName$ = "^" + $@slotColors$[.@slotIndex] + strnpcinfo(1) + "^000000";
+
+	if($@slotsRunning == 1) {
+		mes "[ " + .@slotName$ + " ]";
+		mes "The wheel is currently spinning.";
+		mes "Please wait a bit.";
+		close;
+	}
+
+	query_sql("SELECT bet FROM poring_slot_bets WHERE char_id = " + getcharid(0) + " AND slot_id = " + .@slotId + ";", .@currBet);
+
+	mes "[ " + .@slotName$ + " ]";
+	mes "You get ^0000FF" + .@coinsPerBet + "^000000 per bet ^00AA55" + getitemname($@betItemId) + "^000000, if the wheel stops at a slot you bet on.";
+
+	if(.@currBet) 
+		mes "Your current bet on this slot is ^0000FF" + .@currBet + "^000000 x ^00AA55" + getitemname($@betItemId) + "^000000.";
+
+	mes "Do you want to place a bet?";
+	next;
+
+	if(select("Yes!:No") == 2) {
+		mes "[ " + .@slotName$ + " ]";
+		mes "Come back anytime if you change your mind!";
+		close;
+	}
+
+	input(.@bet);
+
+	if(countitem($@betItemId) < .@bet){
+		mes "[ " + .@slotName$ + " ]";
+		mes "You only have ^0000FF" + countitem($@betItemId) + "^000000 x ^00AA55" + getitemname($@betItemId) + "^000000.";
+		close;
+	}
+
+	if(.@bet < $@minBet){
+		mes "[ " + .@slotName$ + " ]";
+		mes "The lowest bet is ^0000FF" + $@minBet + "^000000 x ^00AA55" + getitemname($@betItemId) + "^000000.";
+		close;
+	}
+
+	delitem($@betItemId, .@bet);
+
+	query_sql("INSERT INTO poring_slot_bets (char_id, slot_id, bet) VALUES (" + getcharid(0) + ", " + .@slotId + ", " + escape_sql(.@bet) + ") ON DUPLICATE KEY UPDATE bet = bet + " + escape_sql(.@bet) + ";");
+	callsub(F_UpdateSign);
+
+	mes "[ " + .@slotName$ + " ]";
+	mes "Alright, i placed your bet.";
+	close;
+
+	F_UpdateSign:
+		delwaitingroom();
+		query_sql("SELECT COUNT(char_id), SUM(bet) FROM poring_slot_bets WHERE slot_id = " + strnpcinfo(2) + ";", .@totalPlayers, .@totalBetAmount);
+		waitingroom(strnpcinfo(1) + " | Players: " + .@totalPlayers + " | Bet Coins: " + .@totalBetAmount, 0);
+		return;
+
+	OnEffect:
+		specialeffect(398);
+		sleep(2500);
+		removespecialeffect(398);
+		end;
+	
+	OnResetRoom:
+		callsub(F_UpdateSign);
+		end;
+
+	OnInit:
+		if(strnpcinfo(0) == "SlotSelect") end;
+		callsub(F_UpdateSign);
+}
+
+-	script	Slot	FAKE_NPC,{
+	OnLightOn:
+		specialeffect(398);
+		end;
+
+	OnLightOff:
+		removespecialeffect(398);
+}
