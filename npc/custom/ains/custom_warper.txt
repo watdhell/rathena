@@ -1011,7 +1011,7 @@ mid_camp,213,229,5	duplicate(Warper)	Warper#mid	10370
 morocc,163,97,5	duplicate(Warper)	Warper#mor	10370
 moscovia,236,198,5	duplicate(Warper)	Warper#mos	10370
 payon,165,96,5	duplicate(Warper)	Warper#pay	10370
-prontera,158,193,4	duplicate(Warper)	Warper#prt	10370
+prontera,163,195,4	duplicate(Warper)	Warper#prt	10370
 rachel,128,143,5	duplicate(Warper)	Warper#rac	10370
 splendide,203,153,5	duplicate(Warper)	Warper#spl	10370
 umbala,89,155,5	duplicate(Warper)	Warper#umb	10370
