@@ -157,7 +157,7 @@ OnInit:
 
 OnMyMobDead:
 	getunitdata(getnpcid(0), .@d);
-	monster strnpcinfo(4),.@d[UNPC_X],.@d[UNPC_Y],"Punching Bag",(!checkre(0))?1905:2411,1,strnpcinfo(0)+"::OnMyMobDead";
+	monster strnpcinfo(4),.@d[UNPC_X],.@d[UNPC_Y],"Punching Bag",(!checkre(0))?2014:2411,1,strnpcinfo(0)+"::OnMyMobDead";
 	.@dupid = atoi(strnpcinfo(2));
 	.gid[.@dupid] = $@mobid[0];
 	.mhp[.@dupid] = .UMOB_MAXHP;

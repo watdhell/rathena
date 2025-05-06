@@ -62,14 +62,14 @@
 		#define MIN_STORAGE 300 // Default number of storage slots.
 	#endif
 	#ifndef MAX_CHAR_VIP
-		#define MAX_CHAR_VIP 21 // This must be less than MAX_CHARS
+		#define MAX_CHAR_VIP 6 // This must be less than MAX_CHARS
 	#endif
 #else
 	#ifndef MIN_STORAGE
 		#define MIN_STORAGE MAX_STORAGE // If the VIP system is disabled the min = max.
 	#endif
 	#ifndef MAX_CHAR_VIP
-		#define MAX_CHAR_VIP 20
+		#define MAX_CHAR_VIP 0
 	#endif
 #endif
 

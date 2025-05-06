@@ -104,3 +104,39 @@ close;
 //dicastes01,196,197,6    duplicate(VIP System)   VIP System#dic  109
 //malangdo,137,116,6  duplicate(VIP System)   VIP System#mal  109
 //malaya,228,195,4    duplicate(VIP System)   VIP System#ma   109
+
+//====================================================================
+
+-	script	VIP_Checker	-1,{
+OnCheck:
+	if(!(.@nb = query_sql("SELECT `account_id` FROM `login` WHERE `group_id` = '5'", .@aid))) {
+		dispbottom "No data found.";
+		end;
+	}
+	dispbottom "VIP Account ID list :";
+	for ( .@i = 0; .@i < .@nb; .@i++ )
+		dispbottom (.@i+1) +". Account ID : "+ .@aid[.@i];
+	dispbottom "Total of "+.@nb +" Active VIP account(s).";
+	end;
+OnInit:
+	bindatcmd "checkvip", strnpcinfo(0)+"::OnCheck", 60, 60; // @checkvip to list active vip accounts
+}
+
+//=====================================================================
+
+-	script	VIP_STATUSs	-1,{
+OnPCLoginEvent:
+	if ( vip_status(1) ) {
+		//sc_start SC_EXPBOOST,1000*60*60*24,0;
+			set .@Timer, vip_status(2);
+			dispbottom "You're VIP.";
+			dispbottom "=============================================";
+			dispbottom "Account Status : VIP Account";
+//			dispbottom "Account Status : Enable VIP Buff from Healer!";
+//			dispbottom "Account Status : Exp & Job Increase 30%";
+//			dispbottom "Account Status : Drop Increase 20%";
+			dispbottom "Time left : "+ callfunc("Time2Str",.@Timer);
+			dispbottom "============================================";
+		end;
+	}
+}

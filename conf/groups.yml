@@ -46,8 +46,15 @@ Body:
     Name: Player
     Level: 0
     Commands:
-      changedress: true
-      resurrect: true
+      rates: true
+      alootid: true
+      autoloot: true
+      go: true
+      warp: true
+      iteminfo: true
+      commands: true
+      autoloottype: true
+      autotrade: true
     Permissions:
       # without this basic permissions regular players could not trade or party
       can_trade: true

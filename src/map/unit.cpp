@@ -2064,7 +2064,7 @@ bool k_tick_check(class map_session_data *sd, t_tick k_tick_t, int k_tick_c, int
 
 	if (DIFF_TICK(k_tick_t, gettick()) > 0) {
 		if (battle_config.KEITENAI_SHOW_DELAY) {
-			sprintf(msg, "[%I64i] second(s) skill use delay", (k_tick_t - gettick()) / 1000);
+			sprintf(msg,"[%I64i] second(s) skill use delay", (k_tick_t - gettick()) / 1000);
 			clif_messagecolor(&sd->bl, color_table[COLOR_RED], msg, false, SELF);
 		}
 		if ((m_castle && (k_tick_c > (kdelay_w / Acceptable_Packet))) || k_tick_c > (kdelay_n / Acceptable_Packet))
