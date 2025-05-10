@@ -1,0 +1,45 @@
+-	script	storage1	-1,{
+	OnInit:
+		bindatcmd "storage1",strnpcinfo(3) + "::OnAtcommand";
+		end;
+	OnAtcommand:
+            mes "[ Kafra ]";
+            mes "Storage 1 will be opened";
+            close2;
+            openstorage2(1,STOR_MODE_GET|STOR_MODE_PUT);
+		end;
+
+}
+
+-	script	storage2	-1,{
+	OnInit:
+		bindatcmd "storage2",strnpcinfo(3) + "::OnAtcommand";
+		end;
+	OnAtcommand:
+            mes "[ Kafra ]";
+            mes "Storage 2 will be opened";
+            close2;
+            openstorage2(2,STOR_MODE_GET|STOR_MODE_PUT);
+		end;
+
+}
+
+
+-	script	storageVIP	-1,{
+	OnInit:
+		bindatcmd "vstorage",strnpcinfo(3) + "::OnAtcommand";
+		end;
+	OnAtcommand:
+            mes "[ Kafra ]";
+            if (vip_status(1)) {
+                .@mode = STOR_MODE_GET|STOR_MODE_PUT;
+                mes "VIP will be opened. Thank you";
+            } else {
+                .@mode = STOR_MODE_GET;
+                mes "Seems you're no longer VIP anymore. You only can take the items.";
+            }
+            close2;
+            openstorage2(3,.@mode);
+		end;
+
+}
