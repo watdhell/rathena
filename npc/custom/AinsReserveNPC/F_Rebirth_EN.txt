@@ -1,0 +1,195 @@
+//===== NexoMMORPG Script ==================================================================================
+//= Rebirth & Reset Stats / Skills / Maps for Adjustable Star Gladiator.
+//===== By: ================================================================================================
+//=  JinYuichi
+//===== Last Updated: ======================================================================================
+//= 02/07/2024
+//===== Description: =======================================================================================
+//= Added Cost in Zeny "(Editable)" : Version: 1.1
+//= Added Max Level "(Editable)" : Version: 1.2
+//= Added Max Rebirth 5 "(Editable)" : Version: 1.3
+//= Added Stats per Rebirth "(Editable)" : Version: 1.4
+//= Added Cash Required for Level 4 and 5 "(Editable)" : Version: 1.5
+//= Added Option to Enable/Disable Cash Points for Rebirths 4 and 5 : Version: 1.6
+//= Added Class Restriction "(Editable)" By Hyroshima : Version 1.7
+//= Added Reset Stats / Skills / Star Gladiator Maps : Version 1.8
+//= Added Verification for those who do not have rebirth to use the Reset options : Version 1.9
+//==========================================================================================================
+
+prontera,138,175,5	script	Spirit Master	600,{
+
+    // Initial settings
+    set .@cost, 5000000;     // Cost for Rebirth
+    set .@blvl, 99;          // Minimum Base Level for Rebirth
+    set .@max_rebirth, 5;    // Maximum number of rebirths
+    
+    // Additional stat points per rebirth
+    setarray .@bstats[0], 200, 400, 600, 800, 1000;
+    
+    // Items required for rebirth (Item ID, Quantity)
+    setarray .@items_id[0], 501, 502, 503;  // Required item IDs
+    setarray .@items_qty[0], 1, 1, 1;       // Required quantities of each item
+    
+    // Cash Points required for rebirth 4 and 5
+    set .@cashpoint_cost[3], 500;  // Rebirth 4: 500 Cash Points
+    set .@cashpoint_cost[4], 1000; // Rebirth 5: 1000 Cash Points
+    
+    // Option to enable/disable Cash Points for rebirths 4 and 5
+    set .@use_cash_points, 1;  // 1 = Enabled, 0 = Disabled by default
+    
+    // Allowed classes IDs
+    setarray .@allowed_classes[0], 23, 24, 25, 4047, 4049, 4008, 4009, 4010, 4011, 4012, 4013, 4015, 4016, 4017, 4018, 4019, 4020, 4021;
+
+    // Reset settings
+    setarray .@Reset[0], 5000, 5000, 9000, 15000;
+
+    // Welcome and introduction message
+    mes "[^FF0000Greed^000000]";
+    mes "*Crack, Crack*";
+    next;
+    mes "[^FF0000Greed^000000]";
+    mes "Hello "+strcharinfo(0)+", I am ^0055FFGreed^000000.";
+    mes "I can help you with two important things:";
+    mes "1. Rebirth to gain more power.";
+    mes "2. Reset your Stats, Skills & SG Maps.";
+    next;
+
+    // Main menu
+    mes "What would you like to do today?";
+    switch(select("Rebirth:Reset Stats/Skills/SG Maps:Cancel")) {
+        case 1:
+            // Check if the maximum number of rebirths has been reached
+            if (Rebirth >= .@max_rebirth) {
+                mes "[^FF0000Greed^000000]";
+                mes "Sorry, but you have already reached the maximum number of allowed rebirths.";
+                close;
+            }
+
+            // Confirmation and explanation of the rebirth process
+            mes "This will be your rebirth number "+(Rebirth + 1)+".";
+            next;
+            mes "Here's how the rebirth works:";
+            mes "When you reach base level "+.@blvl+", you can rebirth as a High Novice Level 1 and receive additional stat points.";
+            mes "You will receive different stat points according to the number of rebirths:";
+            for (set .@i, 0; .@i < .@max_rebirth; set .@i, .@i + 1) {
+                mes "Rebirth "+(.@i + 1)+": "+.@bstats[.@i]+" stat points.";
+            }
+            mes "You can rebirth up to "+.@max_rebirth+" times.";
+            mes "Besides the cost in Zeny, you will need the following items to rebirth:";
+            for (set .@i, 0; .@i < getarraysize(.@items_id); set .@i, .@i + 1) {
+                mes .@items_qty[.@i]+" x "+getitemname(.@items_id[.@i]);
+            }
+            next;
+            mes "Are you ready to rebirth now?";
+            if (select("Yes:No") == 2) {
+                mes "Alright, come back when you are ready.";
+                close;
+            }
+            
+            // Pre-rebirth checks
+            set .@missing_requirements, 0;
+
+            if (BaseLevel < .@blvl) {
+                mes "[^FF0000Greed^000000]";
+                mes "You need to reach at least base level "+.@blvl+" to rebirth.";
+                set .@missing_requirements, 1;
+            }
+            
+            // Check if the class is allowed to rebirth
+            if (inarray(.@allowed_classes, Class) == -1) {
+                mes "[^FF0000Greed^000000]";
+                mes "Your current class cannot rebirth.";
+                set .@missing_requirements, 1;
+            }
+            
+            // Check for sufficient Zeny
+            if (Zeny < .@cost) {
+                mes "[^FF0000Greed^000000]";
+                mes "You need at least "+.@cost+" Zeny to perform the rebirth.";
+                mes "Please come back when you have enough Zeny.";
+                set .@missing_requirements, 1;
+            }
+            
+            // Check for required items
+            for (set .@i, 0; .@i < getarraysize(.@items_id); set .@i, .@i + 1) {
+                if (countitem(.@items_id[.@i]) < .@items_qty[.@i]) {
+                    mes "[^FF0000Greed^000000]";
+                    mes "You don't have all the required items for the rebirth:";
+                    mes .@items_qty[.@i]+" x "+getitemname(.@items_id[.@i]);
+                    set .@missing_requirements, 1;
+                }
+            }
+            
+            // Check for Cash Points for rebirths 4 and 5
+            if (.@use_cash_points && (Rebirth >= 3 && Rebirth <= 4)) {
+                if (#CASHPOINTS < .@cashpoint_cost[Rebirth]) {
+                    mes "[^FF0000Greed^000000]";
+                    mes "You need at least "+.@cashpoint_cost[Rebirth]+" Cash Points to perform this rebirth.";
+                    mes "Please come back when you have enough Cash Points.";
+                    set .@missing_requirements, 1;
+                }
+            }
+            
+            // Show missing requirements message and end if there are any missing requirements
+            if (.@missing_requirements) {
+                close;
+            }
+            
+            // Perform the rebirth
+            if (.@use_cash_points && (Rebirth >= 3 && Rebirth <= 4)) {
+                set #CASHPOINTS, #CASHPOINTS - .@cashpoint_cost[Rebirth];
+            }
+            
+            set Zeny, Zeny - .@cost;
+            for (set .@i, 0; .@i < getarraysize(.@items_id); set .@i, .@i + 1) {
+                delitem .@items_id[.@i], .@items_qty[.@i];
+            }
+            jobchange 4001;
+            Resetlvl 1;            
+            set StatusPoint, StatusPoint + .@bstats[Rebirth];
+            set Rebirth, Rebirth + 1;
+            mes "[^FF0000Greed^000000]";
+            mes "Congratulations, you have rebirthed!";
+            close;
+
+        case 2:
+            // Reset menu
+            mes "[^FF0000Greed^000000]";
+            mes "I can reset your stats and/or skills for a price:";
+            mes "Reset stats: "+callfunc("F_InsertComma", .@Reset[1])+"z";
+            mes "Reset skills: "+callfunc("F_InsertComma", .@Reset[0])+"z";
+            mes "Reset both: "+callfunc("F_InsertComma", .@Reset[2])+"z";
+            mes "Reset SG maps: "+callfunc("F_InsertComma", .@Reset[3])+"z";
+            next;
+            set .@i, (select("Reset skills:Reset stats:Reset both:Reset Star Gladiator maps:Cancel"));
+            if (.@i > 4) close;
+            mes "[^FF0000Greed^000000]";
+            if (Zeny < .@Reset[.@i - 1]) {
+                mes "Sorry, you don't have enough Zeny.";
+                close;
+            }
+            set Zeny, Zeny - .@Reset[.@i - 1];
+            if (.@i & 1) {
+                sc_end_class;
+                ResetSkill;
+            }
+            if (.@i & 2) ResetStatus;
+            if (.@i == 4) {
+                // Reset Star Gladiator maps
+                if (Class == Job_Star_Gladiator) {
+                    mes "I will reset your designated maps.";
+                    next;
+                    atcommand "@feelreset";
+                } else {
+                    mes "Only Star Gladiators can reset their maps.";
+                }
+            }
+            mes "Done!";
+            close;
+
+        case 3:
+            mes "[^FF0000Greed^000000]";
+            mes "Alright... come back soon.";
+            close;
+    }
+}
