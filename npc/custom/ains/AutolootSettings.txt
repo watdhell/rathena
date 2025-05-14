@@ -1,0 +1,89 @@
+//===== rAthena Script ===========================================|
+//= Autoloot Settings			     	                         =|
+//===== By: ======================================================|
+//= crazyarashi							                         =|
+//===== Current Version: =========================================|
+//= 1.0 Initial Version						                     =|
+//= 1.1 Added Reset Function                                     =|
+//================================================================|
+//= Autoloot Settings							                 =|
+//================================================================|
+prontera,147,170,5	script	Autoloot Settings	123,{
+	function autoloot_setting; function aloot_setid;
+	autoloot_setting();
+
+function	autoloot_setting	{
+	mes "[ ^0000FFAutoloot Settings^000000 ]";
+	mes "Adjust your Autoloot Settings.";
+	next;
+	explode(.@alootid$,alootid$,":");
+	.@menu$ += "Quit" + ":";
+	for(.@i = 0; .@i < 50; .@i++){
+		if(atoi(.@alootid$[.@i]) == 0){
+			.@menu$ += "^202020Slot ["+(.@i+1)+"] Empty^000000" + ":";
+		} else {
+			.@menu$ += "^0000FF"+getitemname(atoi(.@alootid$[.@i]))+"^000000[ ^00FF00"+atoi(.@alootid$[.@i])+"^000000 ]" + ":";
+		}
+	}
+	.@s = select(.@menu$);
+	switch(.@s){
+		case 1: end;
+		default:
+			.@s = (.@s - 2);
+			if(select("Set Slot",(atoi(.@alootid$[.@s]) > 0)?"Reset Slot":"") == 1){
+				.@item_id = aloot_setid(.@s);
+				.@alootid$[.@s] = .@item_id;
+				alootid$ = implode(.@alootid$,":");
+				mes "[ ^0000FFAutoloot Settings^000000 ]";
+				mes "The Item ID : " + .@item_id;
+				mes "Has been succesfully added in Slot " + (.@s+1);
+				next;
+				autoloot_setting();
+			} else {
+				.@alootid$[.@s] = 0;
+				alootid$ = implode(.@alootid$,":");
+				mes "[ ^0000FFAutoloot Settings^000000 ]";
+				mes "Slot " + (.@s+1) + " resetted.";
+				next;
+				autoloot_setting();
+			}
+	}
+	end;
+}
+
+function	aloot_setid	{
+	mes "[ ^0000FFAutoloot Settings^000000 ]";
+	mes "Set the Item ID in ^0000FFSlot "+(getarg(0)+1)+"^000000";
+	next;
+	input .@temporary_id;
+	.@item_name$ = getitemname(.@temporary_id);
+	if(.@temporary_id < 501 || .@item_name$ == "null"){
+		mes "[ ^0000FFAutoloot Settings^000000 ]";
+		mes "Please set a Valid Item ID.";
+		next;
+		aloot_setid(getarg(0));
+	}
+	explode(.@alootid$,alootid$,":");
+	for(.@i = 0; .@i < 10; .@i++){
+		if(atoi(.@alootid$[.@i]) == .@temporary_id){
+			mes "[ ^0000FFAutoloot Settings^000000 ]";
+			mes "You already have this ID in your autoloot settings.";
+			next;
+			autoloot_setting();
+		}
+		continue;
+	}
+	return .@temporary_id;
+}
+
+OnPCLoginEvent:
+	explode(.@alootid$,alootid$,":");
+	for(.@i = 0; .@i < getarraysize(.@alootid$); .@i++){
+		if(atoi(.@alootid$[.@i]) == 0){
+			continue;
+		} else {
+			useatcmd "@alootid +"+atoi(.@alootid$[.@i]);
+		}
+	}
+	end;
+}

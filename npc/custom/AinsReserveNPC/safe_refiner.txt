@@ -1,0 +1,242 @@
+skycity,114,213,6	script	Safe Refiner	10055,{
+	disable_items;
+	.@npc_name$ = "Safe Refiner";
+	.@price = 10000000;
+	.@mineralcostmultiplier = 15;
+	.@canfail = 1;
+	.@same = 0; // Check if the materials has the same refinement level
+	.@startsafe = 1; // Start counting materials after the safe refine on Hollgrehenn (4 at Weapon Lvl 4 and Armor Lvl 1)
+
+	// [ START SAFE TABLE ]
+	// At Weapon Lvl 4 / Armor Lvl 1
+	// +4 -> +5 = 1 copy
+	// +5 -> +6 = 2 copies
+	// +6 -> +7 = 3 copies
+	// +7 -> +8 = 4 copies
+	// +8 -> +9 = 5 copies
+	// +9 -> +10 = 6 copies
+
+	mes "["+ .@npc_name$ +"]";
+	mes "Hello, I can safely refine any of your equipment using expensive materials. Safe refining requires additional copies of the item you are refining.";
+	mes "^4444ffCurrent Configuration:^000000";
+	mes "^222255Can Fail: ^000000"+(.@canfail == 1 ? "^aa4444Yes^000000" : "^44aa44No^000000");
+	mes "^222255Same Refinement: ^000000"+(.@same == 1 ? "^aa4444Yes^000000" : "^44aa44No^000000");
+	mes "^222255Start Safe: ^000000"+(.@startsafe == 1 ? "^44aa44Yes^000000" : "^aa4444No^000000");
+	if (.@mineralcostmultiplier > 0) mes "^222255Minerals per refine: "+.@mineralcostmultiplier+"^000000";
+	mes "^222255Zeny Cost: "+.@price+"^000000";
+	next;
+	if (.@same == 1) mes "^ff4444The materials used on this process must be of the same refinement level.^000000";
+	mes "^ff4444IMPORTANT NOTE: The cards on all the materials (except the equipped one) will be destroyed.^000000";
+	next;
+
+	setarray .@indices[1], EQI_HEAD_TOP, EQI_ARMOR, EQI_HAND_L, EQI_HAND_R, EQI_GARMENT, EQI_SHOES, EQI_ACC_L, EQI_ACC_R, EQI_HEAD_MID, EQI_HEAD_LOW;
+	for(.@i = 1; .@i<getarraysize(.@indices); ++.@i) {
+		if(getequipisequiped(.@indices[.@i])) {
+			.@menu$ = .@menu$ + F_getpositionname(.@indices[.@i]) + "-[" + getequipname(.@indices[.@i]) + "]";
+			.@equipped = 1;
+		}
+		.@menu$ = .@menu$ + ":";
+	}
+	if (.@equipped == 0) {
+		mes "["+ .@npc_name$ +"]";
+		mes "I don't think I can refine any items you have...";
+		close;
+	}
+	.@part = .@indices[select(.@menu$)];
+
+	// custom check
+	if(!getequipisequiped(.@part)) {
+		mes "["+ .@npc_name$ +"]";
+		mes "You're not wearing";
+		mes "anything there that";
+		mes "I can refine.";
+		emotion ET_FRET;
+		close;
+	}
+	//Check if the item is refinable...
+	if(!getequipisenableref(.@part)) {
+		mes "["+ .@npc_name$ +"]";
+		mes "I don't think I can";
+		mes "refine this item at all...";
+		close;
+	}
+	//Check to see if the items is already +10
+	if(getequiprefinerycnt(.@part) >= 10) {
+		mes "["+ .@npc_name$ +"]";
+		mes "I can't refine this";
+		mes "any more. This is as";
+		mes "refined as it gets!";
+		close;
+	}
+	.@refineitemid = getequipid(.@part); // save id of the item
+	.@refinerycnt = getequiprefinerycnt(.@part); //save refinery count
+	.@material = getequiprefinecost(.@part, REFINE_COST_NORMAL, REFINE_MATERIAL_ID);
+	setarray .@card[0], getequipcardid(.@part,0), getequipcardid(.@part,1), getequipcardid(.@part,2), getequipcardid(.@part,3);
+
+	switch (getequipweaponlv(.@part)) {
+		case 1: .@startref = 7; break;
+		case 2: .@startref = 6; break;
+		case 3: .@startref = 5; break;
+		case 4:
+		default: .@startref = 4; break;
+	}
+	if (.@refinerycnt < .@startref) {
+		mes "["+ .@npc_name$ +"]";
+		mes "I can only refine items that cannot be safely refine by Hollgrehenn.";
+		close;
+	}
+	.@count = .@startsafe == 0 ? .@refinerycnt - 1 : .@refinerycnt - .@startref + 1;
+
+	mes "["+ .@npc_name$ +"]";
+	mes "To refine this I need:";
+	if (.@same == 1) mes "^4444aa> "+(.@count)+" pcs of +"+(.@refinerycnt)+" ^003366"+getitemname(.@refineitemid)+"^000000";
+	else mes "^4444aa> "+(.@count)+" pcs of ^003366"+getitemname(.@refineitemid)+"^000000";
+	if (.@mineralcostmultiplier > 0) mes "^4444aa> "+(.@count*.@mineralcostmultiplier)+" pcs of "+getitemname(.@material)+"^000000";
+	mes "^4444aa> A service fee of " + .@price + " Zeny.^000000";
+	mes "Do you really wish to continue?";
+	next;
+	if(select("No:Yes") == 1){
+		mes "["+ .@npc_name$ +"]";
+		mes "Yeah...";
+		mes "There's no need to";
+		mes "rush. Take your time.";
+		close;
+	}
+
+	// Checking materials
+	set .@matcount,0;
+	set .@hascard,0;
+	getinventorylist;
+	for (.@i = 0; .@i < @inventorylist_count; ++.@i) {
+		if (.@same) {
+			if (@inventorylist_id[.@i] == .@refineitemid && !@inventorylist_equip[.@i] && @inventorylist_refine[.@i] == .@refinerycnt) {
+				.@matcount++;
+				if (@inventorylist_card1[.@i] > 0) .@hascard = 1;
+			}
+		} else {
+			if (@inventorylist_id[.@i] == .@refineitemid && !@inventorylist_equip[.@i]) {
+				.@matcount++;
+				if (@inventorylist_card1[.@i] > 0) .@hascard = 1;
+			}
+		}
+		if (.@matcount == .@count) break;
+	}
+	if(.@matcount < .@count) {
+		mes "["+ .@npc_name$ +"]";
+		mes "You don't seem to fulfill any of the requirements needed to refine this equipment yet.";
+		mes "Go get more materials with the same refinement levels.";
+		close;
+	}
+	if(.@hascard == 1) {
+		mes "["+ .@npc_name$ +"]";
+		mes "^ff4444One of the materials (except the equipped one) contains a card on it!^000000";
+		mes "^ff4444IMPORTANT NOTE: The cards on all the materials (except the equipped one) will be destroyed.^000000";
+		mes "Do you really wish to continue?";
+		next;
+		
+		if(select("No:Yes") == 1) {
+			mes "["+ .@npc_name$ +"]";
+			mes "Yeah...";
+			mes "There's no need to";
+			mes "rush. Take your time.";
+			close;
+		}
+	}
+	if(.@mineralcostmultiplier > 0 && countitem(.@material) < .@count*.@mineralcostmultiplier) {
+		mes "["+ .@npc_name$ +"]";
+		mes "You don't seem to fulfill any of the requirements needed to refine this equipment yet.";
+		mes "Go get more "+getitemname(.@material)+" to proceed.";
+		close;
+	}
+	if(Zeny < .@price) {
+		mes "["+ .@npc_name$ +"]";
+		mes "You don't seem to fulfill any of the requirements needed to refine this equipment yet.";
+		mes "Go get more Zeny to proceed.";
+		close;
+	}
+	
+	// Payment
+	set .@delcount,0;
+	for (.@i = 0; .@i < @inventorylist_count; ++.@i) {
+		if (.@same) {
+			if (.@delcount < .@count && @inventorylist_id[.@i] == .@refineitemid && !@inventorylist_equip[.@i] && @inventorylist_refine[.@i] == .@refinerycnt) {
+				delitemidx @inventorylist_idx[.@i], 1;
+				set .@delcount,.@delcount+1;
+			}
+		} else {
+			if (.@delcount < .@count && @inventorylist_id[.@i] == .@refineitemid && !@inventorylist_equip[.@i]) {
+				delitemidx @inventorylist_idx[.@i], 1;
+				set .@delcount,.@delcount+1;
+			}
+		}
+	}
+	if (.@mineralcostmultiplier > 0) {
+		delitem .@material,.@count*.@mineralcostmultiplier;
+	}
+	Zeny = Zeny-.@price;
+
+	// Anti-hack
+	if (callfunc("F_IsEquipIDHack", .@part, .@refineitemid) || callfunc("F_IsEquipCardHack", .@part, .@card[0], .@card[1], .@card[2], .@card[3]) ||
+	    callfunc("F_IsEquipRefineHack", .@part, .@refinerycnt)) {
+		mes "["+ .@npc_name$ +"]";
+		emotion ET_FRET;
+		mes "Wait a second...";
+		mes "Do you think I'm stupid?!";
+		mes "You switched the item while I wasn't looking! Get out of here!";
+		close;
+	}
+
+	// Fail checking
+	if (.@canfail == 1) {
+		if (getequippercentrefinery(.@part) <= rand(100)) {
+			downrefitem .@part,0;
+			mes "[Clink]";
+			mes "Cry Hammer!! Cry!!!";
+			next;
+			switch(rand(1,5)) {
+				case 1: emotion ET_CRY; break;
+				case 2: emotion ET_PROFUSELY_SWEAT; break;
+				case 3: emotion ET_KEK; break;
+				case 4: emotion ET_SCRATCH; break;
+				case 5: emotion ET_BIGTHROB; break;
+			}
+			mes "[Clink]";
+			mes "Huh?! I failed?!";
+			next;
+			mes "[Clink]";
+			mes "Arrgg~ It's all~ Broken...? What a pity~";
+			next;
+			mes "[Clink]";
+			mes "Hey...!! Get me another one.";
+			mes "This is not possible.";
+			mes "How can my hammer fail from refining?";
+			close;
+		}
+	}
+
+	// Success refining
+	mes "["+ .@npc_name$ +"]";
+	successrefitem .@part;
+	emotion ET_SMILE;
+	specialeffect EF_NPC_EARTHQUAKE;
+	.@win = rand(1,3);
+	if (.@win == 1) {
+		mes "Perfect!";
+		mes "Heh heh!";
+		mes "Once again,";
+		mes "flawless work";
+		mes "from the master~";
+	} else if(.@win == 2) {
+		mes "Success...!";
+		mes "Yet again, my amazing";
+		mes "talent truly dazzles";
+		mes "and shines today.";
+	} else {
+		mes "Heh heh!";
+		mes "I'm all done.";
+		mes "No doubt, my work is";
+		mes "to your satisfaction.";
+		mes "Sheer, utter perfection~";
+	}
+	close;
+}

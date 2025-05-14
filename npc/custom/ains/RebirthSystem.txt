@@ -94,6 +94,7 @@ function getItemReward;		// give the items reward
 			jobchange Job_Novice;
 	}
 	resetlvl 1;
+	ResetStatus; // Will reset the statpoints
 	if ( Class == Job_Novice ) StatusPoint = 48;
 	StatusPoint += .num_status * num_rebirth;
 	StatusPoint += .num_status * (num_grand_rebirth * .reset_max);
@@ -154,9 +155,9 @@ function weightreq {
 }
 
 OnInit:
-	.reset_max = 500;		// how much reset max
+	.reset_max = 5;		// how much reset max
 	.grand_reset_max = 100;		// how much grand rebirth max
-	.change_reward = 250;	// after the set rebirth, change reward
+	.change_reward = 3;	// after the set rebirth, change reward
 	.num_status = 10;		// + X number of status points
 	.reset_job = false;		// character will go back to Novice?
 	.rebirth_ranking = 5;	// How many tops in rebirth ranking? (0=disable)

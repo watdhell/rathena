@@ -1118,7 +1118,7 @@ Body:
     Name: Gold
     Type: Etc
     Buy: 200000
-    Weight: 200
+    Weight: 1
     Flags:
       BuyingStore: true
   - Id: 970

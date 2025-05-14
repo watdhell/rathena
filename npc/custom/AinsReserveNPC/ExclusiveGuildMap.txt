@@ -1,0 +1,183 @@
+-	script	EXCLUSIVE_GUILD_MAPS	FAKE_NPC,{
+    // Config
+    OnInit:
+        //Castle Maps
+        setarray .castleMaps$[0], "prtg_cas01","aldeg_cas05";
+		
+		// Exclusive Map
+		setarray .exclusiveMaps$[0], "prt_fild07","prt_fild09";
+
+        // Guildpoints random amount
+        setarray .guild_amount, 1, 3;
+
+        // Rate to get Guildpoints
+        .rate = 100;
+
+		// Mob Spawn
+		// ID, Type (0 = Gold, 1 = Guildpoints), Amount
+        setarray .mobs[0],
+        1369, 0, 100,
+        1840, 0, 100,
+        1934, 1, 50,
+        1935, 1, 50;
+
+
+		// Respawn Mobs Gold
+		// ID, Type (0 = Gold, 1 = Guildpoints), Amount
+        setarray .respawnGoldmobs[0],
+        1369, 0, 1,
+        1840, 0, 1;
+
+		// Respawn Mobs Guildpoints
+		// ID, Type (0 = Gold, 1 = Guildpoints), Amount
+        setarray .respawnGPmobs[0],
+        1934, 1, 1,
+        1935, 1, 1;
+
+        setarray .mobTypeNames$[0], "[DG]Gold", "[DG]Flower";
+        setarray .labels$[0], "OnGoldmobDeath", "OnGuildpointmobDeath";
+
+    // Map Management
+        for(.@i = 0; .@i < getarraysize(.exclusiveMaps$); .@i++) {
+            setmapflag .exclusiveMaps$[.@i], MF_LOADEVENT;
+            callsub(S_MobSpawn, .exclusiveMaps$[.@i], .mobs);
+        }
+
+        initnpctimer;
+
+	OnAgitStart:
+	OnAgitStart2:
+	OnAgitStart3:
+	OnTimer500:
+        freeloop(1);
+        for(.@i = 0; .@i < getarraysize(.castleMaps$); .@i++) {
+            .@playerCountOnMap = getmapunits(BL_PC, .exclusiveMaps$[.@i], .@name$[0]);
+
+            for (.@y = 0; .@y < .@playerCountOnMap; .@y++) {               
+                .@charName$ = .@name$[.@y];
+                .@charId = getcharid(0, .@charName$);
+                
+                if(callsub(S_AgitCheck, .@charName$, .@charId) == 1) continue;
+                callsub(S_OwnerCheck, .castleMaps$[.@i], getcharid(2, .@charName$), .@charName$, .@charId);
+            }
+        }
+        freeloop(0);
+        setnpctimer 0;
+	end;
+
+	OnPCLoadMapEvent:
+        .@mapIndex = inarray(.exclusiveMaps$[0], strcharinfo(3));
+		if (.@mapIndex == -1) end;
+
+        if(callsub(S_AgitCheck, strcharinfo(0), getcharid(0)) == 1) end;
+        callsub(S_OwnerCheck, .castleMaps$[.@mapIndex], getcharid(2), strcharinfo(0), getcharid(0));
+    end;
+
+    S_AgitCheck:
+        if (agitcheck() || agitcheck2() || agitcheck3()) {
+            message getarg(0), "A War of Emperium is going on, you will be warped to your Save Point";
+			warp "SavePoint", 0, 0, getarg(1);
+            return 1;
+		}
+
+        return 0;
+
+    S_OwnerCheck:
+        .@castleOwnerId = getcastledata(getarg(0), CD_GUILD_ID);
+        if (.@castleOwnerId > 0 && getarg(1) == .@castleOwnerId) return 1;
+
+        message getarg(2), "YOU ARE NO LONGER WELCOME HERE, YOU WILL BE WARPED TO WHERE YOU BELONG!";
+        warp "SavePoint", 0, 0, getarg(3);
+
+        return 0;
+
+    // Mob Management
+    OnGuildpointmobDeath:
+        if (.rate > rand(10)) {
+            .@point = rand(.guild_amount[0], .guild_amount[1]);
+            #GUILDPOINTS += .@point;
+            dispbottom "Gained " + .@point + " Point. You got " + F_InsertComma(#GUILDPOINTS) + " Points now.";
+        }
+
+        callsub(S_MobSpawn, strcharinfo(3), .respawnGPmobs);
+    end;
+
+    OnGoldmobDeath:
+        .@r = rand(100);
+        if ( .@r < 3 )
+            getitem 969, 50;
+        else if ( .@r < 5 )
+            getitem 969, 20;
+        else if ( .@r < 25 )
+            getitem 969, 5;
+        else if ( .@r < 50 )
+            getitem 969, 3;
+        else
+            getitem 969, 1;
+
+        callsub(S_MobSpawn, strcharinfo(3), .respawnGoldmobs);
+    end;
+
+    S_MobSpawn:
+        .@map$ = getarg(0);
+
+        for(.@i = 0; .@i < getarraysize(getarg(1)); .@i += 3) {
+            .@mobId = getelementofarray(getarg(1), .@i);
+            .@mobType = getelementofarray(getarg(1), .@i + 1);
+            .@mobAmt = getelementofarray(getarg(1), .@i + 2);
+            .@mobTypeName$ = .mobTypeNames$[.@mobType];
+            .@mobLabel$ =.labels$[.@mobType];
+            monster .@map$, 0,0, .@mobTypeName$, .@mobId, .@mobAmt, strnpcinfo(0) + "::" + .@mobLabel$;
+        }
+        return;
+}
+
+prontera,152,144,0	script	FarmGuild	1,{
+	copyarray .cpyCastleMaps$[0], getvariableofnpc(.castleMaps$[0], "EXCLUSIVE_GUILD_MAPS"), getarraysize(getvariableofnpc(.castleMaps$[0], "EXCLUSIVE_GUILD_MAPS"));
+	copyarray .cpyExclusiveMaps$[0], getvariableofnpc(.exclusiveMaps$[0], "EXCLUSIVE_GUILD_MAPS"), getarraysize(getvariableofnpc(.exclusiveMaps$[0], "EXCLUSIVE_GUILD_MAPS"));
+
+	mes "[Entrance Guard]";
+	if (agitcheck() || agitcheck2() || agitcheck3()) {
+		mes "A War of Emperium is currently running, you can't enter right now";
+		close;
+	}
+
+    if(getcharid(2) == 0) {
+		mes "Your need to be in a Guild, for me to be able to assist you.";
+		close;
+    }
+
+	.@index = 0;
+	for(.@i = 0; .@i < getarraysize(.cpyCastleMaps$); .@i++) {
+		if(getcastledata(.cpyCastleMaps$[.@i], CD_GUILD_ID) == getcharid(2)) {
+			.@ownedCastleIndexes[.@index] = .@i;
+			.@index++;
+		}
+	}
+
+	.@ownedCastlesCount = getarraysize(.@ownedCastleIndexes);
+	if (.@ownedCastlesCount == 0 && .@index == 0) {
+		mes "You don't own a Castle. Come back when you do.";
+		close;
+	}
+
+	if(.@ownedCastlesCount == 0)
+		.@map$ = .cpyExclusiveMaps$[.@ownedCastleIndexes[0]];
+
+	if(.@ownedCastlesCount > 0) {
+		for(.@i = 0; .@i < .@ownedCastlesCount; .@i++)
+            .@ownedCastleNames$[.@i] = getcastlename(.cpyCastleMaps$[.@ownedCastleIndexes[.@i]]);
+
+		mes "You own multiple Castles, select to which Castles exclusive map you want to teleport.";
+		next;
+		select(implode(.@ownedCastleNames$, ":"));
+
+		.@map$ = .cpyExclusiveMaps$[.@ownedCastleIndexes[@menu - 1]];
+	}
+
+	mes "You will be warped to Lost Midgard";
+	next;
+	warp .@map$, 0, 0;
+	dispbottom "[Guild Message]: Welcome to Lost Midgard";
+	end;
+}
