@@ -9821,7 +9821,7 @@ int32 skill_castend_nodamage_id (struct block_list *src, struct block_list *bl, 
 			break;
 		}
 // By pass FCP when using single strip skills by 15%(requires Glistening Coat).
-	if ( sd && tsc && sd->sc.getSCE(SC_SPIRIT) && sd->sc.getSCE(SC_SPIRIT)->val2 == SL_ROGUE && rand()%100 < 10
+	if ( sd && tsc && sd->sc.getSCE(SC_SPIRIT) && sd->sc.getSCE(SC_SPIRIT)->val2 == SL_ROGUE && rand()%100 < 100
 	&&
 	( skill_id == RG_STRIPWEAPON && tsc->getSCE(SC_CP_WEAPON) ||
             	skill_id == RG_STRIPSHIELD && tsc->getSCE(SC_CP_SHIELD) ||
