@@ -9820,7 +9820,39 @@ int32 skill_castend_nodamage_id (struct block_list *src, struct block_list *bl, 
 			clif_gospel_info( *sd, 0x28 );
 			break;
 		}
-
+// By pass FCP when using single strip skills by 15%(requires Glistening Coat).
+	if ( sd && tsc && sd->sc.getSCE(SC_SPIRIT) && sd->sc.getSCE(SC_SPIRIT)->val2 == SL_ROGUE && rand()%100 < 10
+	&&
+	( skill_id == RG_STRIPWEAPON && tsc->getSCE(SC_CP_WEAPON) ||
+            	skill_id == RG_STRIPSHIELD && tsc->getSCE(SC_CP_SHIELD) ||
+            	skill_id == RG_STRIPARMOR && tsc->getSCE(SC_CP_ARMOR) ||
+            	skill_id == RG_STRIPHELM && tsc->getSCE(SC_CP_HELM) ) ) {
+	int item_id = 7139; // Glistening Coat
+	int ii;
+	ARR_FIND( 0, MAX_INVENTORY, ii, sd->inventory.u.items_inventory[ii].nameid == item_id );
+	if ( ii < MAX_INVENTORY ) {
+		pc_delitem( sd, ii, 1, 0, 0, LOG_TYPE_CONSUME);
+		switch ( skill_id ) {
+			case RG_STRIPWEAPON:
+				status_change_end( bl, SC_CP_WEAPON, INVALID_TIMER );
+				sc_start(src,bl,SC_STRIPWEAPON,100,skill_lv,skill_get_time(skill_id,skill_lv));
+				break;
+			case RG_STRIPSHIELD:
+				status_change_end( bl, SC_CP_SHIELD, INVALID_TIMER );
+				sc_start(src,bl,SC_STRIPSHIELD,100,skill_lv,skill_get_time(skill_id,skill_lv));
+				break;
+			case RG_STRIPARMOR:
+				status_change_end( bl, SC_CP_ARMOR, INVALID_TIMER );
+				sc_start(src,bl,SC_STRIPARMOR,100,skill_lv,skill_get_time(skill_id,skill_lv));
+				break;
+			case RG_STRIPHELM:
+				status_change_end( bl, SC_CP_HELM, INVALID_TIMER );
+				sc_start(src,bl,SC_STRIPHELM,100,skill_lv,skill_get_time(skill_id,skill_lv));
+				break;			}
+			clif_skill_nodamage( src, *bl, skill_id, skill_lv, i );
+				break;
+				}
+			}
 		if( (i = skill_strip_equip(src, bl, skill_id, skill_lv)) || (skill_id != ST_FULLSTRIP && skill_id != GC_WEAPONCRUSH ) )
 			clif_skill_nodamage(src,*bl,skill_id,skill_lv,i);
 

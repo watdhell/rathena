@@ -1,0 +1,50 @@
+prontera,150,150,5    script    gold room    456,{
+    function    t   {
+        function s;
+        set .@left, getarg(0);
+        if ( .@left <= 0 ) return getarg(0);
+        set .@day, .@left / 86400;
+        set .@hour, .@left % 86400 / 3600;
+        set .@min, .@left % 3600 / 60;
+        set .@sec, .@left % 60;
+        return ( ( .@day ? .@day +" day"+ s( .@day ) : "" ) + ( .@hour ? .@hour +" hour"+ s( .@hour ) : "" ) + ( .@min ? .@min +" min"+ s( .@min ) : "" ) + ( .@sec ? .@sec +" sec"+ s( .@sec,1 ) : "" ));
+    function    s   {
+        return ( ( getarg(0) > 1 ? "s" : "" ) + ( getarg(1,0) ? "" : " " ) ); }
+    }
+
+    if ( gltimer <= 0 && enter_gold_room < gettimetick(2) ) {
+        set gltimer, .glt;
+        enter_gold_room = gettimetick(2) + 86400 * .dly;
+    } else if ( enter_gold_room > gettimetick(2) && gltimer <= 0 ) {
+        mes "I'm sorry you can't enter in the gold room. You must wait "+ t( enter_gold_room - gettimetick(2) )+".";
+        close;
+    }
+    mes "You have "+t( gltimer )+" remaining.";
+    select( "enter in the gold room" );
+    warp .map$,0,0;
+    attachnpctimer;
+    initnpctimer;
+    end;
+
+OnTimer1000:
+    if( playerattached() ){
+        if(strcharinfo(3)!=.map$) {
+            stopnpctimer;
+            end;
+        }
+        set gltimer, gltimer-1;
+        if( gltimer <= 0 ) {
+            stopnpctimer;
+            warp "prontera",0,0;
+            message strcharinfo(0), "end of time for the gold room";
+            end;
+        } else setnpctimer 0;
+    }
+    end;
+
+OnInit:
+    set        .dly ,    7           ; //Delay in days.
+    set        .glt ,    1800        ; //Gold Room Timer in seconds.
+    set        .map$,    "geffen"    ; //
+    end;
+}

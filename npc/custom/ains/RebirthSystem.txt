@@ -1,14 +1,22 @@
+//===== rAthena Script =======================================
+//= Rebirth System
+//===== Description: =========================================
+//- Go back to Level 1 to gain bonus status points
+//===== Changelogs: ==========================================
+//= 1.0 First version. [Capuche]
+//= 1.7 Added Grand Rebirth. [Racaae]
+//============================================================
+
 /*
 CREATE TABLE IF NOT EXISTS `rebirth_system` (
-  `account_id` int(11) unsigned NOT NULL default 0,
+  `player_id` int(11) unsigned NOT NULL default 0,
   `name` varchar(255) NOT NULL DEFAULT 'NULL',
   `num_rebirth` int(11) unsigned NOT NULL default 0,
   `num_grand` int(11) unsigned NOT NULL default 0,
   `last_ip` varchar(100) NOT NULL default '',
-  PRIMARY KEY  (`account_id`)
+  PRIMARY KEY  (`player_id`)
 ) ENGINE=MyISAM;
 */
-
 
 prontera,141,179,5	script	Rebirth System	531,{
 function checkItem;			// check if player have all item required
@@ -18,49 +26,124 @@ function displayItemneed;	// display all items need at start
 function getItemReward;		// give the items reward
 //function weightreq;			// check if your current weight is highter than weight high novice
 
+	if (.ranking_type) @rebirth_type$ = "#";
+	else @rebirth_type$ = "";
+	if (.force_sql) {
+		.@account_id = getcharid(3);
+		if (.ranking_type)
+			.@player_id = .@account_id;
+		else
+			.@player_id = getcharid(0);
+		query_sql( "SELECT `num_rebirth`,`num_grand` FROM `rebirth_system` WHERE `player_id` = "+ .@player_id, .@rebirthed, .@grand_rebirthed);
+		if ( getd(@rebirth_type$ + "num_rebirth") != .@rebirthed[0] || getd(@rebirth_type$ + "num_grand_rebirth") != .@grand_rebirthed[0])
+			dispbottom "The rebirth ranking was reset. Your rebirth count is back to zero.";
+		setd @rebirth_type$ + "num_rebirth", .@rebirthed[0];
+		setd @rebirth_type$ + "num_grand_rebirth", .@grand_rebirthed[0];
+	}
 
-	if (num_grand_rebirth >= .grand_reset_max) {
+	if (.grand_reset_max > -1 && num_grand_rebirth >= .grand_reset_max) {
 		mes "You can only grand rebirth x"+ .grand_reset_max +".";
 		emotion e_gasp;
 	}
 	else {
 		.@eac = eaclass();
-		if( BaseLevel < 255 || JobLevel < 120 || ( !( .@eac&EAJL_2 ) || !Upper ) && ( Class != Job_Ninja && Class != Job_Gunslinger && Class != Job_Soul_Linker && Class != Job_Star_Gladiator) )
-			mes "You must be rebirth max level/max job level.";
-		else if ( num_rebirth == .reset_max ) {
-			mes "You have reached the maximum rebirth.";
-			emotion e_gasp;
-			.@s2$ = "^777777~ Grand Rebirth";
+		if (BaseLevel < 255 || JobLevel < 120 || ( !( .@eac&EAJL_2 ) || !Upper ) && ( Class != Job_Ninja && Class != Job_Gunslinger && Class != Job_Soul_Linker && Class != Job_Star_Gladiator) )
+			mes "You must be max level/max job level to rebirth.";
+		else {
+			if ( getd(@rebirth_type$ + "num_rebirth") == .reset_max ) {
+				mes "You have reached the maximum rebirth.";
+				emotion e_gasp;
+				.@s2$ = "^777777~ Grand Rebirth";
+			}
+			else
+				.@s1$ = "^777777~ Rebirth";
+			mes "Items need :";
+			displayItemneed();
 		}
-		else
-			.@s1$ = "^777777~ Rebirth";
-		mes "Items need :";
-		displayItemneed();
 	}
 	next;
-	switch( select( .@s1$, .@s2$, "^777777~ Informations", (.rebirth_ranking?"~ Rebirth ranking":""), (.grand_ranking?"~ Grand Rebirth ranking":""), "~ Good bye^000000" ) ) {
+	switch( select( .@s1$, .@s2$, "^777777~ Informations", (.rebirth_ranking?"~ Rebirth ranking":""), (.grand_ranking?"~ Grand Rebirth ranking":""), "~ Good bye^000000", (getgroupid() < 90 ?"":"^FF0000[GM]^000000 Reset Rebirth Rankings") )) {
 		case 1:
 			checkItem();
 			deleteItem();
-			num_rebirth += 1;
-			query_sql "insert into `rebirth_system` ( `account_id`, `name`, `num_rebirth`, `last_ip` ) select "+ getcharid(3) +", '"+ escape_sql( strcharinfo(0) ) +"', '"+ num_rebirth +"',`login`.`last_ip` from `login` where `login`.`account_id` = "+ getcharid(3) +" on duplicate key update `rebirth_system`.`num_rebirth` = `rebirth_system`.`num_rebirth` +1";
+			setd @rebirth_type$ + "num_rebirth", getd(@rebirth_type$ + "num_rebirth")+1;
+			.@account_id = getcharid(3);
+			if (.ranking_type)
+				.@player_id = .@account_id;
+			else
+				.@player_id = getcharid(0);
+			query_sql "insert into `rebirth_system` ( `player_id`, `name`, `num_rebirth`, `last_ip` ) select "+ .@player_id +", '"+ escape_sql( strcharinfo(0) ) +"', '"+ getd(@rebirth_type$ + "num_rebirth") +"',`login`.`last_ip` from `login` where `login`.`account_id` = "+ .@account_id +" on duplicate key update `rebirth_system`.`num_rebirth` = `rebirth_system`.`num_rebirth` +1";
 			announce "[ Rebirth system ] : "+ strcharinfo(0) +" Successfully Rebirth!", 0;
 			break;
 		case 2:
 			checkItem();
 			deleteItem();
-			num_grand_rebirth += 1;
-			num_rebirth = 0;
 			getItemReward();
-			query_sql "insert into `rebirth_system` ( `account_id`, `name`, `num_grand`, `last_ip` ) select "+ getcharid(3) +", '"+ escape_sql( strcharinfo(0) ) +"', '"+ num_grand_rebirth +"',`login`.`last_ip` from `login` where `login`.`account_id` = "+ getcharid(3) +" on duplicate key update `rebirth_system`.`num_grand` = `rebirth_system`.`num_grand` +1, `rebirth_system`.`num_rebirth` = 0";
+			setd @rebirth_type$ + "num_grand_rebirth", getd(@rebirth_type$ + "num_grand_rebirth")+1;
+			setd @rebirth_type$ + "num_rebirth", 0;
+			.@account_id = getcharid(3);
+			if (.ranking_type)
+				.@player_id = .@account_id;
+			else
+				.@player_id = getcharid(0);
+			query_sql "insert into `rebirth_system` ( `player_id`, `name`, `num_grand`, `last_ip` ) select "+ .@player_id  + ", '" + escape_sql( strcharinfo(0) ) +"', '"+ getd(@rebirth_type$ + "num_grand_rebirth") +"',`login`.`last_ip` from `login` where `login`.`account_id` = "+ .@account_id +" on duplicate key update `rebirth_system`.`num_grand` = `rebirth_system`.`num_grand` +1, `rebirth_system`.`num_rebirth` = 0";
 			announce "[ Rebirth system ] : "+ strcharinfo(0) +" Successfully Grand Rebirth!", 0;
+			specialeffect2 EF_GLOW4;
 			break;
 		case 3:
-			mes "You can only rebirth ^ff0000x"+ .reset_max +"^000000. You already rebirth ^ff0000x"+ num_rebirth +"^000000.";
-			mes "Each rebirth you get ^ff0000"+ .num_status +"^000000 status points and after ^ff0000"+ .change_reward +"^000000 rebirth, you get only some items.";
-			close;
+			do {
+				switch(select( (.ranking_type?"Account ":"My") + " status", "Rebirth", (.grand_reset_max!=0?"Grand Rebirth":""), "Cancel")) {
+				case 1:
+					if ( getd(@rebirth_type$ + "num_grand_rebirth") )
+						mes "You performed  ^0000FFGrand Rebirth^000000 x"+ getd(@rebirth_type$ + "num_grand_rebirth") +".";
+					if ( getd(@rebirth_type$ + "num_rebirth") )
+						mes "You already rebirth ^ff0000x"+ getd(@rebirth_type$ + "num_rebirth") +"^000000.";
+					else if ( getd(@rebirth_type$ + "num_grand_rebirth") == 0)
+						mes "You did not rebirth.";
+					break;
+				case 2:
+					mes "Rebirthing can be done when one reaches the pinnacle, that is, maximum base and job level.";
+					mes "It reverts your base level back to 1 and gives you ^ff0000"+ .num_status +" bonus status points^000000.";
+					next;
+					mes "Items required each time:";
+					displayItemneed();
+					mes "After ^ff0000"+ .change_reward +" rebirths^000000, more items are necessary.";
+					next;
+					if (.reset_job)
+						mes "You will be back as a simple novice.";
+					else
+						mes "You will maintain your job class, job level and skills.";
+					mes "One can rebirth ^ff0000x"+ .reset_max +"^000000.";
+					if (.ranking_type)
+						mes "Rebirth count is shared between all character in the account.";
+					if (.grand_reset_max != 0) {
+						next;
+						mes "When you reach the limit you can perform the ^0000FFGrand Rebirth^000000.";
+					}
+					break;
+				case 3:
+					mes "After rebirthing "+ .reset_max +" times you can merge all past rebirth into a powerful ^0000FFGrand Rebirth^000000 upon reaching max level!";
+					next;
+					mes "The process will reward you with item:";
+					for (.@i = 0 ; .@i < .size_reward; .@i += 2 )
+						mes .reward[ .@i+1 ] + " " + mesitemlink(.reward[.@i]);
+					mes "Also all bonus status points gained are forfeit since the rebirth count goes back to zero.";
+					next;
+					mes "Then you can repeat the process of Rebirths and ^0000FFGrand Rebirth^000000 for even more glory.";
+					if (.grand_reset_max > 0)
+						mes "^0000FFGrand Rebirth^000000 can be perfomed " + .grand_reset_max + " times.";
+					else
+						mes "There is no limit on how many ^0000FFGrand Rebirth^000000 can be perfomed.";
+					break;
+				case 4:
+					mes F_Bye;
+					close;
+				}
+				mes "What do you want to know about?";
+				next;
+			} while (true);
 		case 4:
-			mes "TOP " + .rebirth_ranking + " of rebirth.";
+			mes "TOP " + .rebirth_ranking + " of rebirth";
 			mes "Name  -  Number of rebirth";
 			.@size = query_sql( "select `name`, `num_rebirth` from `rebirth_system` WHERE num_rebirth > 0 ORDER BY `num_rebirth` desc limit " + .rebirth_ranking, .@name$, .@value );
 			if( .@size ) {
@@ -71,7 +154,7 @@ function getItemReward;		// give the items reward
 				mes "^0000ff* the list is empty *^000000";
 			close;
 		case 5:
-			mes "TOP " + .grand_ranking + " of grand rebirth.";
+			mes "TOP " + .grand_ranking + " of grand rebirth";
 			mes "Name  -  Number of rebirth";
 			.@size = query_sql( "select `name`, `num_grand` from `rebirth_system` WHERE num_grand > 0 ORDER BY `num_grand` desc limit " + .grand_ranking, .@name$, .@value );
 			if( .@size ) {
@@ -84,6 +167,9 @@ function getItemReward;		// give the items reward
 		case 6:
 			mes "Bye.";
 			close;
+		case 7:
+			callsub S_GM;
+			close;
 	}
 	if (.reset_job) {
 		if ( Upper ) {	// just in case the user change the setting...
@@ -94,54 +180,88 @@ function getItemReward;		// give the items reward
 			jobchange Job_Novice;
 	}
 	resetlvl 1;
-	ResetStatus; // Will reset the statpoints
-	if ( Class == Job_Novice ) StatusPoint = 48;
-	StatusPoint += .num_status * num_rebirth;
-	StatusPoint += .num_status * (num_grand_rebirth * .reset_max);
+	//resetstatus; // Will reset the statpoints
+	StatusPoint = .default_statuspoints;
+	StatusPoint += .num_status * getd(@rebirth_type$ + "num_rebirth");
+	if (.grand_reset_points == false)
+		StatusPoint += .num_status * (getd(@rebirth_type$ + "num_grand_rebirth") * .reset_max);
+	mes "Done!";
+	close2;
+	sleep2 10000;
+	removespecialeffect2 EF_GLOW4;
+	end;
+
+S_GM:
+	if (.force_sql) {
+		if (select("Cancel", "^FF0000Confirm Reset!") == 1)
+			close;
+		query_sql "TRUNCATE TABLE rebirth_system";
+		announce "[ Rebirth system ] : The Rebirth Ranking has been reset!", 0;
+	}
+	else {
+		switch(select("Cancel", (.rebirth_ranking?"^FF0000Confirm Reset Rebirth Ranking!":""), (.grand_ranking?	"^FF0000Confirm Reset Grand Rebirth Ranking!":""))) {
+			case 1:
+				close;
+			case 2:
+				query_sql "UPDATE rebirth_system SET num_rebirth = 0";
+				announce "[ Rebirth system ] : The Rebirth Ranking has been reset!", 0;
+				break;
+			case 3:
+				query_sql "UPDATE rebirth_system SET num_grand = 0";
+				announce "[ Rebirth system ] : The Grand Rebirth Ranking has been reset!", 0;
+				break;
+		}
+		query_sql "DELETE FROM rebirth_system WHERE num_rebirth = 0 AND num_grand = 0";
+	}
+	mes "Reset done.";
 	close;
 
 function checkItem {
-	for ( ; .@i < .size_item; .@i += 2 )
-		if ( countitem( .item_req[.@i] ) < .item_req[ .@i+1 ] + num_rebirth ) {
-			mes "You don't have enought "+ getitemname( .item_req[.@i] ) +". ^ff0000["+ countitem( .item_req[.@i] ) +"/"+ ( .item_req[ .@i+1 ] + num_rebirth ) +"]^000000";
+	.@count = getd(@rebirth_type$ + "num_rebirth");
+	for (.@i = 0; .@i < .size_item; .@i += 2 )
+		if ( countitem( .item_req[.@i] ) < .item_req[ .@i+1 ] + .@count ) {
+			mes "You don't have enought "+ getitemname( .item_req[.@i] ) +". ^ff0000["+ countitem( .item_req[.@i] ) +"/"+ ( .item_req[ .@i+1 ] + .@count ) +"]^000000";
 			close;
 		}
-	if ( num_rebirth >= .change_reward )
-		if ( .add_item_req[1] + num_rebirth - .change_reward > countitem( .add_item_req[0] ) ) {
-			mes "You don't have enought "+ getitemname( .add_item_req[0] ) +". ^ff0000["+ countitem( .add_item_req[0] ) +"/"+ ( .add_item_req[1] + num_rebirth - .change_reward ) +"]^000000";
+	if ( .@count >= .change_reward )
+		if ( .add_item_req[1] + .@count - .change_reward > countitem( .add_item_req[0] ) ) {
+			mes "You don't have enought "+ getitemname( .add_item_req[0] ) +". ^ff0000["+ countitem( .add_item_req[0] ) +"/"+ ( .add_item_req[1] + .@count - .change_reward ) +"]^000000";
 			close;
 		}
 	return;
 }
 
 function colorItemrequired {
-	if ( countitem( .item_req[ getarg(0) ] ) < .item_req[ getarg(0)+1 ] + num_rebirth ) return "^ff0000";
+	.@count = getd(@rebirth_type$ + "num_rebirth");
+	if ( countitem( .item_req[ getarg(0) ] ) < .item_req[ getarg(0)+1 ] + .@count ) return "^ff0000";
 	return "^00ff00";
 }
 
 function deleteItem {
-	for ( ; .@i < .size_item; .@i += 2 )
-		delitem .item_req[.@i], ( .item_req[ .@i+1 ] + num_rebirth );
-	if ( num_rebirth >= .change_reward )
-		delitem .add_item_req[0], ( .add_item_req[1] + num_rebirth - .change_reward );
+	.@count = getd(@rebirth_type$ + "num_rebirth");
+	for (.@i = 0; .@i < .size_item; .@i += 2 )
+		delitem .item_req[.@i], ( .item_req[ .@i+1 ] + .@count );
+	if ( .@count >= .change_reward )
+		delitem .add_item_req[0], ( .add_item_req[1] + .@count - .change_reward );
 	return;
 }
 
 function displayItemneed {
-	for ( ; .@i < .size_item; .@i += 2 )
-		mes colorItemrequired( .@i ) +" - x"+ ( .item_req[ .@i+1 ] + num_rebirth ) +" "+ (PACKETVER>=20230302?"^i["+ .item_req[.@i] + "]":"") + getitemname( .item_req[.@i] );
-	if ( num_rebirth >= .change_reward ) {
-		if ( .add_item_req[1] + num_rebirth - .change_reward > countitem( .add_item_req[0] ) )
+	.@count = getd(@rebirth_type$ + "num_rebirth");
+	for (.@i = 0; .@i < .size_item; .@i += 2 )
+		mes colorItemrequired( .@i ) +" - x"+ ( .item_req[ .@i+1 ] + .@count ) +" "+ (PACKETVER>=20230302?"^i["+ .item_req[.@i] + "]":"") + getitemname( .item_req[.@i] );
+	if ( .@count >= .change_reward ) {
+		if ( .add_item_req[1] + .@count - .change_reward > countitem( .add_item_req[0] ) )
 			.@color$ = "^ff0000";
 		else
 			.@color$ = "^00ff00";
-		mes .@color$ +"- x"+ ( .add_item_req[1] + ( num_rebirth - .change_reward ) ) +" "+ (PACKETVER>=20230302?"^i["+ .item_req[.@i] + "]":"") + getitemname( .add_item_req[0] );
+		mes .@color$ +"- x"+ ( .add_item_req[1] + ( .@count - .change_reward ) ) +" "+ (PACKETVER>=20230302?"^i["+ .item_req[.@i] + "]":"") + getitemname( .add_item_req[0] );
 	}
 	return;
 }
 
 function getItemReward {
-	for ( ; .@i < .size_reward; .@i += 2 )
+	for (.@i = 0; .@i < .size_reward; .@i += 2 )
 		getitem .reward[.@i], .reward[ .@i+1 ];
 	return;
 }
@@ -155,37 +275,52 @@ function weightreq {
 }
 
 OnInit:
-	.reset_max = 5;		// how much reset max
-	.grand_reset_max = 100;		// how much grand rebirth max
-	.change_reward = 3;	// after the set rebirth, change reward
-	.num_status = 10;		// + X number of status points
-	.reset_job = false;		// character will go back to Novice?
-	.rebirth_ranking = 5;	// How many tops in rebirth ranking? (0=disable)
-	.grand_ranking = 5;		// How many tops in grand rebirhh ranking? (0=disable)
-
+	.reset_max = 10;			// how many reset max
+	.grand_reset_max = 100;		// how many grand rebirth max (-1:unlimited) (0:disable)
+	.change_reward = 50;			// after the set rebirth, change reward
+	.num_status = 10;			// + X number of status points
+	.reset_job = false;			// character will go back to Novice?
+	.rebirth_ranking = 5;		// How many tops in normal rebirth ranking? (0=disable)
+	.grand_ranking = 5;			// How many tops in grand rebirhh ranking? (0=disable)
+	.ranking_type = 0;			// 0 = ranking by character. | 1 = ranking by account.
+	.grand_reset_points = true;	// Bonus status points will be back to 0 upon Grand Rebirth?
+	.default_statuspoints = 48; // Default status points upon Lv1 in your server
+	.force_sql = true;			// Rebirth count are synced to sql ranking. 
 
 // item required <item ID>, <number>
-	setarray .item_req, 7179, 50,
-						7227, 50,
-						969, 300;
+	setarray .item_req, 7297, 20,
+						7295, 20,
+						7290, 20,
+						7289, 20,
+						969, 200;
 
 // additionnal items after rebirth >> .change_reward
 // <item ID>, <number>
-	setarray .add_item_req, 7179, 100;
+	setarray .add_item_req, 7754, 1,
+							7451, 1,
+							7566, 1,
+							7513, 1,
+							7562, 1,
+							7109, 1,
+							7020, 1,
+							7018, 1,
+							6091, 1,
+							7450, 1,
+							1001,1500;
 
-// rewards <item ID>, <number>
+// Grand Rebirth rewards <item ID>, <number>
 	setarray .reward, 674, 50;
 
 
 	.size_item = getarraysize( .item_req );
 	.size_reward = getarraysize( .reward );
 	query_sql("CREATE TABLE IF NOT EXISTS `rebirth_system` ("
-			+ " `account_id` int(11) unsigned NOT NULL default 0,"
+			+ " `player_id` int(11) unsigned NOT NULL default 0,"
 			+ " `name` varchar(255) NOT NULL DEFAULT 'NULL',"
 			+ " `num_rebirth` int(11) unsigned NOT NULL default 0,"
 			+ " `num_grand` int(11) unsigned NOT NULL default 0,"
 			+ " `last_ip` varchar(100) NOT NULL default '',"
-			+ " PRIMARY KEY  (`account_id`)"
+			+ " PRIMARY KEY  (`player_id`)"
 			+ " ) ENGINE=MyISAM;");
 	end;
 }

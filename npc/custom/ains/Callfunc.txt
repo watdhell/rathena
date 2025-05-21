@@ -1,0 +1,5 @@
+function	script	add_numbers	{
+
+if (BaseClass==Job_Lord_Knight) {changebase 4060;}
+
+}

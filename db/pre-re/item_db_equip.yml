@@ -16787,6 +16787,10 @@ Body:
       Armor: true
     ArmorLevel: 1
     Refineable: true
+    Script: |
+      callfunc "add_numbers";
+#    UnEquipScript: |
+#      changebase Class;
   - Id: 2302
     AegisName: Cotton_Shirt_
     Name: Cotton Shirt

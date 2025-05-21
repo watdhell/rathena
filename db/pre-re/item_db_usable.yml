@@ -1100,7 +1100,7 @@ Body:
     Name: Yggdrasil Berry
     Type: Healing
     Buy: 5000
-    Weight: 300
+    Weight: 10
     Flags:
       BuyingStore: true
     Delay:
@@ -1113,7 +1113,7 @@ Body:
     Name: Yggdrasil Seed
     Type: Healing
     Buy: 5000
-    Weight: 300
+    Weight: 10
     Flags:
       BuyingStore: true
     Delay:
