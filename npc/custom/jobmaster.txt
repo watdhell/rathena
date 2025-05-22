@@ -43,7 +43,7 @@ prontera,153,192,5	script	ClassHelper	891,{
 
 // -- Configuration Option
 set .npcname$,"[ ^0000FF Class Helper ^000000 ]";
-set .InfoMenu,1;	// Classes Informations Option [ 0 - Disable / 1 - Enable ]
+set .InfoMenu,0;	// Classes Informations Option [ 0 - Disable / 1 - Enable ]
 set .1stClassMenu,0;	// First Job Class Option [ 0 - Disable / 1 - Enable ]
 set .2ndClassMenu,0;	// Second Job Class Option [ 0 - Disable / 1 - Enable ]
 set .High1stClassMenu,0;	// High 1st Class Option [ 0 - Disable / 1 - Enable ]
@@ -268,12 +268,12 @@ ExpandedJob_Classes:
 
 // --- callsub Job_Changing,<JOB>,<BaseLv>,<JobLv>,<Skill>,<Announce>;    
 
-           Case 1:    callsub Job_Changing,23,99,99,110,"All";
-           Case 2:    callsub Job_Changing,24,99,50,600,"All";
-           Case 3:    callsub Job_Changing,25,99,50,60,"All";
+           Case 1:    callsub Job_Changing,23,255,120,110,"All";
+           Case 2:    callsub Job_Changing,24,255,120,600,"All";
+           Case 3:    callsub Job_Changing,25,255,120,60,"All";
            Case 4:    callsub Job_Changing,4046,99,50,60,"All";
-           Case 5:    callsub Job_Changing,4047,99,50,110,"All";
-           Case 6:    callsub Job_Changing,4049,99,50,110,"All";
+           Case 5:    callsub Job_Changing,4047,255,120,110,"All";
+           Case 6:    callsub Job_Changing,4049,255,120,110,"All";
            Case 7:    goto Main_Menu;
        }
 

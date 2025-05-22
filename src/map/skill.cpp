@@ -9849,7 +9849,7 @@ int32 skill_castend_nodamage_id (struct block_list *src, struct block_list *bl, 
 				status_change_end( bl, SC_CP_HELM, INVALID_TIMER );
 				sc_start(src,bl,SC_STRIPHELM,100,skill_lv,skill_get_time(skill_id,skill_lv));
 				break;			}
-			clif_skill_nodamage( src, *bl, skill_id, skill_lv, i );
+			clif_skill_nodamage( src, *bl, skill_id, skill_lv, i = 0 );
 				break;
 				}
 			}

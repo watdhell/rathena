@@ -16721,8 +16721,6 @@ Body:
         Rate: 300
       - Item: Wind_Of_Verdure
         Rate: 1000
-      - Item: Gold
-        Rate: 1
       - Item: Orange
         Rate: 500
       - Item: Grand_Peco_Card
@@ -21980,8 +21978,6 @@ Body:
         Rate: 2300
       - Item: Great_Nature
         Rate: 10
-      - Item: Gold
-        Rate: 2
       - Item: Increase_Soil_Card
         Rate: 1
         StealProtected: true
@@ -25018,8 +25014,6 @@ Body:
         Rate: 800
       - Item: Yellow_Gemstone
         Rate: 100
-      - Item: Gold
-        Rate: 2
       - Item: Mineral_Card
         Rate: 1
         StealProtected: true
@@ -28514,8 +28508,6 @@ Body:
         Rate: 2
       - Item: Yellow_Gemstone
         Rate: 100
-      - Item: Gold
-        Rate: 1
       - Item: Plasma_Card
         Rate: 1
         StealProtected: true
@@ -34191,8 +34183,6 @@ Body:
         Rate: 100
       - Item: Old_Card_Album
         Rate: 5
-      - Item: Gold
-        Rate: 500
       - Item: Emperium
         Rate: 100
       - Item: Golden_Gear_
