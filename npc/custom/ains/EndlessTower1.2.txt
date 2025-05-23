@@ -2236,7 +2236,7 @@ OnTimer10500:
 	set .@map$, instance_mapname("6@tower");
 	mapannounce .@map$,"You'll soon know. Mine is the face of death!",bc_map,"0x00ffcc";
 	stopnpctimer;
-	monster .@map$,156,147,"Nacht Sieger",1956,1,instance_npcname("#4th Beeper")+"::OnMyMobDead";
+	//monster .@map$,156,147,"Nacht Sieger",1956,1,instance_npcname("#4th Beeper")+"::OnMyMobDead";
 	callfunc "F_Tower_Monster",101,instance_mapname("6@tower"),instance_npcname("#4th Beeper")+"::OnMyMobDead";	
 	end;
 
