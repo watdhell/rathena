@@ -1067,7 +1067,7 @@ Body:
     Name: Dead Branch
     Type: Usable
     Buy: 50
-    Weight: 50
+    Weight: 10
     Flags:
       BuyingStore: true
       DeadBranch: true

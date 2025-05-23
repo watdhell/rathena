@@ -277,9 +277,9 @@ e_tower,81,105,0	script	Tower Protection Stone	406,{
 						else if (.@level_mode == 2) { .@required_level = 100; }
 						else if (.@level_mode == 3) { .@required_level = 150; }
 						else if (.@level_mode == 4) { .@required_level = 200; }
-						else if (.@level_mode == 5) { .@required_level = 260; }
+						else if (.@level_mode == 5) { .@required_level = 255; }
 
-						if (!instance_check_party(getcharid(1), .@online_members_count, .@required_level, 260)) {
+						if (!instance_check_party(getcharid(1), .@online_members_count, .@required_level, 255)) {
 							mes "All party members need to be at least Level " + .@required_level + " to enter."; 
 							close;				
 						} 

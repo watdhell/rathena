@@ -1,0 +1,2604 @@
+//===== rAthena Script ======================================= 
+//= Sealed Shrine
+//===== By: ================================================== 
+//= L0ne_W0lf
+//===== Current Version: ===================================== 
+//= 2.3
+//===== Compatible With: ===================================== 
+//= rAthena Project
+//===== Description: ========================================= 
+//= [Official Conversion]
+//= Seal away the Great Demon Baphomet.
+//===== Additional Comments: ================================= 
+//= 1.0 First version. [L0ne_W0lf]
+//= 1.1 Added setquest for instance cooldown. [L0ne_W0lf]
+//= 1.2 Fixed Torch#12 not being disabled. (bugreport:4044) [L0ne_w0lf]
+//= 1.3 Fixed cutins not being removed. (bugreport:4117) [L0ne_w0lf]
+//= 1.4 Fixed some typos. [Gepard]
+//= 1.5 Fixed not being able to enter dungeon for the first two hours.
+//= 1.6 Players should be able to re-take the quest after 12 hours now.
+//=     Changed quest 3046 to 3040. This is the correct quest id.
+//=     Removed checking quest 3045, unofficial check.
+//= 1.7 Fixed a checkquest condition never setting quest. [L0ne_W0lf]
+//= 1.8 Added 'instance_check_party' command to the script for proper checking if
+//=     the invoking party meets the requirements to join the Memorial Dungeon.
+//= 1.9 Fixed broken else/if chaining. [Joseph]
+//= 2.0 Some optimization. [Euphy]
+//= 2.1 Fixed quest being removed before the 12 hours cool down. [Joseph]
+//= 2.2 Removed extra setquest (quest id:3040).	[Joseph]
+//= 2.3 Instance system rewrite. [Euphy]
+//============================================================ 
+
+// Sealed Catacomb Entrance
+//============================================================
+monk_test,309,146,3	script	Friar Patrick#edq	412,{
+	cutin "ins_cata_pri_n",2;
+	mes "[Friar Patrick]";
+	mes "The peace of this world cannot last forever... The hands of Evil are reaching into the world again...";
+	next;
+	mes "[Friar Patrick]";
+	mes "What brought you to this place?";
+	next;
+	if (countitem(6004) > 0) {
+		set .@doll,1;
+		set .@selection,select("What is this place?:I want to enter.:About the Cursed Baphomet Doll.:Cancel.");
+	}
+	else {
+		set .@selection,select("What is this place?:I want to enter.:Cancel.");
+	}
+	switch(.@selection) {
+	case 1:
+		mes "[Friar Patrick]";
+		mes "Huh... Don't you know? This is St. Capitolina Monastery where the Brothers who wish to become monks train and pray.";
+		next;
+		mes "[Friar Patrick]";
+		mes "And this place is... What can I say... Yes. It's the grave of the Devil. Grave...";
+		next;
+		mes "[Friar Patrick]";
+		mes "The very place where the great Devil who once demolished this world is sleeping.";
+		next;
+		switch(select("Tell me more.:Stop talking.")) {
+		case 1:
+			cutin "ins_cata_pri_n",2;
+			mes "[Friar Patrick]";
+			mes "Baphomet... is the name of the Devil... I think you have heard of his name.";
+			next;
+			mes "[Friar Patrick]";
+			mes "Numerous brave men and brothers have trained in this monastery...";
+			next;
+			mes "[Friar Patrick]";
+			mes "Under this gravestone in front of you... Baphomet is sealed.";
+			next;
+			mes "[Friar Patrick]";
+			mes "But... As we speak Satan Morocc is marshalling his powerful magic in order to affect all life on this continent.";
+			next;
+			mes "[Friar Patrick]";
+			mes "Baphomet also... has awakened and is preparing for his revival, into this world, by weakening the power of the seal through the power of Satan Morocc...";
+			next;
+			mes "[Friar Patrick]";
+			mes "Now... I'm looking for someone brave enough to reseal Baphomet in its shrine... as we once did many years ago...";
+			next;
+			mes "[Friar Patrick]";
+			mes "Anyone who fights for good will know, deep inside, that evil is threatening to conquer this world...";
+			next;
+			mes "[Friar Patrick]";
+			mes "Train more and use your skills to protect the world from evil's looming presence...";
+			break;
+		case 2:
+			cutin "ins_cata_pri_n",2;
+			mes "[Friar Patrick]";
+			mes "Anyone who fights for good will know, deep inside, that evil is threatening to conquer this world...";
+			next;
+			mes "[Friar Patrick]";
+			mes "Train more and use your skills to protect the world from evil's looming presence...";
+			break;
+		}
+		break;
+	case 2:
+		if (BaseLevel >= 75) {
+
+			set .@party_id,getcharid(1);
+			getpartymember .@party_id, 1;
+			set .@online_members_count, $@partymembercount;
+			// 12 hour cooldown
+			set .@ins_bapho_check,checkquest(3040,PLAYTIME);
+			// Two hour play limit
+			//set .@ins_bapho_check2,checkquest(3045,PLAYTIME);
+			callfunc "F_Sealed_Settings";
+// GM Bypass
+//============================================================
+	if(getgroupid() > 90){
+        mes "GM Options";
+		next;
+        switch(select("Main Menu:Reset Instance / Destroy Instance")){
+			case 1: break;
+			case 2: 
+				if(isbegin_quest(3040))
+					erasequest(3040);
+				if(isbegin_quest(3045))
+					erasequest(3045);					
+				if(instance_id(IM_PARTY))
+					instance_destroy instance_id(IM_PARTY);
+				end;
+        }
+    }
+//============================================================			
+			mes "[Friar Patrick]";
+			mes "Do you mean you'll go to the shrine and reseal Baphomet?";
+			next;
+
+			if (.@ins_bapho_check == -1) {
+				if (is_party_leader(.@party_id) == true) {
+				switch(select(
+				( .@party_id && getpartyleader(.@party_id,2) && !instance_id(IM_PARTY) )? "Generate dungeon "+.@md_name$:"",
+				"Difficulty Information",
+				"Cancel")) {
+					case 1:				
+		// Difficulty 
+		//============================================================
+		
+						.@level_mode = select(
+							"[ Level 75+ ] Normal", 
+							"[ Level 100+ ] Veteran", 
+							"[ Level 150+ ] Nightmare",
+							"[ Level 200+ ] Hell",
+							"[ Level 240+ ] ^ff0000Torment^000000"
+						);
+						$SEALEDMODE[getcharid(1)] = .@level_mode;
+						set .@required_level, 0;
+
+						if (.@level_mode == 1) { .@required_level = 75; }
+						else if (.@level_mode == 2) { .@required_level = 100; }
+						else if (.@level_mode == 3) { .@required_level = 150; }
+						else if (.@level_mode == 4) { .@required_level = 200; }
+						else if (.@level_mode == 5) { .@required_level = 240; }
+
+						if (!instance_check_party(getcharid(1), .@online_members_count, .@required_level, 260)) {
+							mes "All party members need to be at least Level " + .@required_level + " to enter."; 
+							close;				
+						} 
+						mes "[Friar Patrick]";
+						mes "Your party meets the Memorial Dungeon requirements.",
+						.@modez$ = .@modes$[.@level_mode];				
+						announce "The party [ " + getpartyname(.@party_id) + " ] has registered "+.@md_name$+" on " + $@difficulty_mode$[.@level_mode] + ".", bc_all;					
+							
+		//=============================================================				
+						
+						mes "Party name is "+getpartyname(.@party_id)+"...";
+						mes "Name of the leader is "+strcharinfo(0)+"...";
+						if (instance_create("Sealed Catacomb") < 0) {
+							mes "Umm... But it seems that there is a problem here... I'll check quickly. Please wait.";
+						}
+						else {
+							mes "Okay... I'll adjust the shrine's seal so that you and your group can enter.";
+							next;
+							mes "[Friar Patrick]";
+							mes "You will see a sign when the seal has broken. Please wait until the sign appears...";
+							next;
+							mes "[Friar Patrick]";
+							mes "When you see the sign, put your hands on the gravestone... Then you can move inside.";
+							next;
+							mes "[Friar Patrick]";
+							mes "One thing that you should remember is... Anyone who enters this shrine will be cursed by Baphomet and cannot enter or leave while they are cursed.";
+							next;
+							mes "[Friar Patrick]";
+							mes "And one more thing... In this cursed area, some skills, which are protected by outer physical power are prohibited by the effect of the seal.";
+							next;
+							mes "[Friar Patrick]";
+							mes "For example, the skills like ^0000FFSafety Wall and Assumptio^000000... So you'd better prepare before entering the shrine.";
+							close;
+						}
+					case 2:
+						mes "[ Difficulty Information ]";
+						mes "^ff0000-----------------------------------------------------^000000";
+						mes "Difficulty Level: ^ff0000[ Easy ]^000000";
+						mes "Monster max hp: + ^ff0000[ " + $@easy_mode_variables[0] + "% ]^000000";
+						mes "Monster damage: + ^ff0000[ " + $@easy_mode_variables[1] + "% ]^000000";
+						mes "Monster takes less damage: ^ff0000[ " + $@easy_mode_variables[2] + "% ]^000000";
+						mes "Monster def: + ^ff0000[ " + $@easy_mode_variables[3] + "% ]^000000";
+						mes "Monster mdef: + ^ff0000[ " + $@easy_mode_variables[4] + "% ]^000000";
+						mes "Monster hit: + ^ff0000[ " + $@easy_mode_variables[5] + "% ]^000000";
+						mes "Monster flee: + ^ff0000[ " + $@easy_mode_variables[6] + "% ]^000000";
+						mes "Monster bonus exp reward: x ^ff0000[ " + $@bonus_exp[1] + " ]^000000";
+						mes ""+.@md_name$ +" Easy Points: + ^ff0000[ " + $@instance_points[1] + " ]^000000";
+						mes "^ff0000-----------------------------------------------------^000000";
+						next;
+						mes "[ Difficulty Information ]";
+						mes "^ff0000-----------------------------------------------------^000000";
+						mes "Difficulty Level: ^ff0000[ Veteran ]^000000";
+						mes "Monster max hp: + ^ff0000[ " + $@veteran_mode_variables[0] + "% ]^000000";
+						mes "Monster damage: + ^ff0000[ " + $@veteran_mode_variables[1] + "% ]^000000";
+						mes "Monster takes less damage: ^ff0000[ " + $@veteran_mode_variables[2] + "% ]^000000";
+						mes "Monster def: + ^ff0000[ " + $@veteran_mode_variables[3] + "% ]^000000";
+						mes "Monster mdef: + ^ff0000[ " + $@veteran_mode_variables[4] + "% ]^000000";
+						mes "Monster hit: + ^ff0000[ " + $@veteran_mode_variables[5] + "% ]^000000";
+						mes "Monster flee: + ^ff0000[ " + $@veteran_mode_variables[6] + "% ]^000000";
+						mes "Monster bonus exp reward: x ^ff0000[ " + $@bonus_exp[2] + " ]^000000";
+						mes ""+.@md_name$ +" Veteran Points: + ^ff0000[ " + $@instance_points[2] + " ]^000000";
+						mes "^ff0000-----------------------------------------------------^000000";
+						next;
+						mes "[ Difficulty Information ]";
+						mes "^ff0000-----------------------------------------------------^000000";
+						mes "Difficulty Level: ^ff0000[ Nightmare ]^000000";
+						mes "Monster max hp: + ^ff0000[ " + $@nightmare_mode_variables[0] + "% ]^000000";
+						mes "Monster damage: + ^ff0000[ " + $@nightmare_mode_variables[1] + "% ]^000000";
+						mes "Monster takes less damage: ^ff0000[ " + $@nightmare_mode_variables[2] + "% ]^000000";
+						mes "Monster def: + ^ff0000[ " + $@nightmare_mode_variables[3] + "% ]^000000";
+						mes "Monster mdef: + ^ff0000[ " + $@nightmare_mode_variables[4] + "% ]^000000";
+						mes "Monster hit: + ^ff0000[ " + $@nightmare_mode_variables[5] + "% ]^000000";
+						mes "Monster flee: + ^ff0000[ " + $@nightmare_mode_variables[6] + "% ]^000000";
+						mes "Monster bonus exp reward: x ^ff0000[ " + $@bonus_exp[3] + " ]^000000";
+						mes ""+.@md_name$ +" Nightmare Points: + ^ff0000[ " + $@instance_points[3] + " ]^000000";
+						mes "^ff0000-----------------------------------------------------^000000";
+						next;
+						mes "[ Difficulty Information ]";
+						mes "^ff0000-----------------------------------------------------^000000";
+						mes "Difficulty Level: ^ff0000[ Hell ]^000000";
+						mes "Monster max hp: + ^ff0000[ " + $@hell_mode_variables[0] + "% ]^000000";
+						mes "Monster damage: + ^ff0000[ " + $@hell_mode_variables[1] + "% ]^000000";
+						mes "Monster takes less damage: ^ff0000[ " + $@hell_mode_variables[2] + "% ]^000000";
+						mes "Monster def: + ^ff0000[ " + $@hell_mode_variables[3] + "% ]^000000";
+						mes "Monster mdef: + ^ff0000[ " + $@hell_mode_variables[4] + "% ]^000000";
+						mes "Monster hit: + ^ff0000[ " + $@hell_mode_variables[5] + "% ]^000000";
+						mes "Monster flee: + ^ff0000[ " + $@hell_mode_variables[6] + "% ]^000000";
+						mes "Monster bonus exp reward: x ^ff0000[ " + $@bonus_exp[4] + " ]^000000";
+						mes ""+.@md_name$ +" Hell Points: + ^ff0000[ " + $@instance_points[4] + " ]^000000";
+						mes "^ff0000-----------------------------------------------------^000000";
+						next;
+						mes "[ Difficulty Information ]";
+						mes "^ff0000-----------------------------------------------------^000000";
+						mes "Difficulty Level: ^ff0000[ Torment ]^000000";
+						mes "Monster max hp: + ^ff0000[ " + $@torment_mode_variables[0] + "% ]^000000";
+						mes "Monster damage: + ^ff0000[ " + $@torment_mode_variables[1] + "% ]^000000";
+						mes "Monster takes less damage: ^ff0000[ " + $@torment_mode_variables[2] + "% ]^000000";
+						mes "Monster def: + ^ff0000[ " + $@torment_mode_variables[3] + "% ]^000000";
+						mes "Monster mdef: + ^ff0000[ " + $@torment_mode_variables[4] + "% ]^000000";
+						mes "Monster hit: + ^ff0000[ " + $@torment_mode_variables[5] + "% ]^000000";
+						mes "Monster flee: + ^ff0000[ " + $@torment_mode_variables[6] + "% ]^000000";
+						mes "Monster bonus exp reward: x ^ff0000[ " + $@bonus_exp[5] + " ]^000000";
+						mes ""+.@md_name$ +" Torment Points: + ^ff0000[ " + $@instance_points[5] + " ]^000000";
+						mes "^ff0000-----------------------------------------------------^000000";
+						close;				
+					case 3:
+						close;						
+					}
+				}
+				else {
+					mes "[Friar Patrick]";
+					mes "Umm... I recognize your courage, but... I can't permit anyone to enter this place. I can only permit the leader of a party to enter first.";
+					next;
+					mes "[Friar Patrick]";
+					mes "Once the party leader is permitted, the rest of the party can enter. This is a rule of this monastery, so please understand.";
+				}
+			}
+			else if (.@ins_bapho_check == 0 || .@ins_bapho_check == 1) {
+				mes "[Friar Patrick]";
+				mes "It seems you have entered this shrine recently... You cannot reenter because Baphomet's Curse still remains. Baphomet's Curse disappears only after a certain amount of time has passed.";
+			}
+			else if (.@ins_bapho_check == 2) {
+				mes "[Friar Patrick]";
+				mes "Umm... It seems that Baphomet's Curse has weakened. I can remove it now.";
+				next;
+				mes "[Friar Patrick]";
+				mes "Haaaaaaap... Hocus Pocus Wingardium Abracadabra!!!!!";
+				next;
+				erasequest 3040;
+				if (checkquest(3041)>=0) erasequest 3041;
+				if (checkquest(3045)>=0) erasequest 3045;
+				mes "[Friar Patrick]";
+				mes "Huu... It's over. Now that I've released Baphomet's Curse, you can enter again.";
+			}
+		}
+		else {
+			mes "[Friar Patrick]";
+			mes "Umm... You should train more to enter this dangerous place... You should reach at least Lv 75 to enter here.";
+			next;
+			mes "[Friar Patrick]";
+			mes "Please train more and come again.";
+		}
+		break;
+	case 3:
+		if (.@doll == 1) {
+			mes "[Friar Patrick]";
+			mes "That is... the villainous doll that you are holding... Let me see it.";
+			next;
+			mes "[Friar Patrick]";
+			mes "... ... ...";
+			next;
+			mes "[Friar Patrick]";
+			mes "That's correct... I can feel Baphomet's evil inside... So, what will you do with the doll?";
+			next;
+			mes "[Friar Patrick]";
+			mes "It is just a dangerous and useless thing if you do nothing with it... I'll introduce someone who can help you... Do you want to see him?";
+			next;
+			mes "[Friar Patrick]";
+			mes "Go to see ^0000FFRust Blackhand^000000 who is near the main building of the monastery... He will make this doll helpful to you.";
+			setquest 3042;
+			break;
+		}
+	case 4:
+		mes "[Friar Patrick]";
+		mes "Anyone who fights for good will know, deep inside, that evil is threatening to conquer this world...";
+		next;
+		mes "[Friar Patrick]";
+		mes "Train more and use your skills to protect the world from evil's looming presence...";
+		break;
+	}
+	close2;
+	cutin "",255;
+	end;
+}
+
+monk_test,306,151,3	script	Grave of Baphomet#edq	111,{
+	if (countitem(6002)) delitem 6002,countitem(6002); //Token_Of_Apostle
+	mes "This gravestone has a carving of a wicked devil with large horns. It arouses an ominous feeling.";
+	next;
+	if(select("Touch the stone.:Step back.") == 2)
+		close;
+
+	// 12 hour cooldown
+	set .@ins_bapho_check,checkquest(3040,PLAYTIME);
+	// Two hour play limit
+	//set .@ins_bapho_check2,checkquest(3045,PLAYTIME);
+
+	if (.@ins_bapho_check == -1) {
+		switch(instance_enter("Sealed Catacomb")) {
+		case IE_OTHER:
+		case IE_NOINSTANCE:
+			mes "It's cold to the touch. It doesn't respond.";
+			close;
+		case IE_NOMEMBER:
+			mes "[Friar Patrick]";
+			mes "To enter this dangerous place, you can't go alone. Come again after you join a party.";
+			close;
+		case IE_OK:
+			mapannounce "monk_test","[" + strcharinfo(0) + "] member of the [" + getpartyname(.@party_id) + "] party has entered the Sealed Shrine.",bc_map,"0x00ff99";
+			setquest 3040;
+			//warp "1@cata",100,224;
+			close;
+		}
+	} else if (.@ins_bapho_check == 0 || .@ins_bapho_check == 1) {
+		mes "[Friar Patrick]";
+		mes "It seems you have entered this shrine recently... You cannot reenter because the curse of Baphomet still remains.";
+		mes "The curse of Baphomet disappears after a certain amount of time after you entered.";
+		close;
+	} else if (.@ins_bapho_check == 2) {
+		mes "[Friar Patrick]";
+		mes "Umm... It seems the curse of Baphomet weakened. I'll clear the bad curse.";
+		next;
+		mes "[Friar Patrick]";
+		mes "Haaaaaaap... Wingardium Leviosa Expecto Patronum !!!!!";
+		specialeffect2 EF_HOLYHIT;
+		erasequest 3040;
+		if (checkquest(3041)>=0) erasequest 3041;
+		if (checkquest(3045)>=0) erasequest 3045;
+		next;
+		mes "[Friar Patrick]";
+		mes "Huu... It's over. Now I released all of the curses on you. You can enter again.";
+		close;
+	}
+}
+
+prt_monk,261,91,3	script	Rust Blackhand#edq	826,{
+	set .@new_maje,checkquest(3043);
+	mes "[Rust Blackhand]";
+	mes "Who are you? What do you want me for?";
+	next;
+	mes "[Rust Blackhand]";
+	mes "You're not a monk, then what do you want?";
+	next;
+	if (.@new_maje == 0 || .@new_maje == 1) {
+		mes "[Rust Blackhand]";
+		mes "Did you bring all of the ingredients?";
+		next;
+		if ((countitem(6004) > 0) && (countitem(2256) > 0) && (countitem(7799) > 29) && (countitem(7798) > 49) && (Zeny > 990000)) {
+			mes "[Rust Blackhand]";
+			mes "kkk... You prepared the ingredients well. Why don't you leave it there and wait?";
+			next;
+			mes "[Rust Blackhand]";
+			mes "Hmm... It's been such a long time since I last saw these wicked horns... kkk... Let me start...";
+			next;
+			mes "...";
+			next;
+			mes "... ...";
+			next;
+			mes "... ... ...";
+			next;
+			delitem 6004,1; //Bapho_Doll
+			delitem 2256,1; //Magestic_Goat
+			delitem 7799,30; //Dark_Crystal
+			delitem 7798,50; //Dark_Debris
+			set Zeny, Zeny-990000;
+			completequest 3043;
+			getitem 5374,1; //L_Magestic_Goat
+			mes "[Rust Blackhand]";
+			mes "It's done. You may be excited, of course. I understand...";
+			next;
+			mes "[Rust Blackhand]";
+			mes "I don't accept complaints or A/S requests, so use it with care. I must go...";
+			close;
+		}
+		else {
+			mes "[Rust Blackhand]";
+			mes "Huu... You don't understand what I said. You cannot make anything with these ingredients.";
+			next;
+			mes "[Rust Blackhand]";
+			mes "I'll tell you the ingredients one more time, so please gather them correctly.";
+			next;
+			mes "[Rust Blackhand]";
+			mes "^0000FFCursed Baphomet Doll, Magestic Goat, 30 Crystal of Darkness, 50 Fragment of Darkness^000000, and the most important, production cost is ^0000FF990000^000000 Zeny.";
+			close;
+		}
+	}
+	else if ((.@new_maje == -1) && (countitem(6004) > 0)) {
+		switch(select("About the Cursed Baphomet Doll:Stop talking.")) {
+		case 1:
+			mes "[Rust Blackhand]";
+			mes "What?... Hmmm... Did you get the doll? You're pretty good, unlike your appearance...";
+			next;
+			mes "[Rust Blackhand]";
+			mes "Let me see... Needless to say, Patric must have sent you here to deal with the doll, right?";
+			next;
+			mes "[Rust Blackhand]";
+			mes "Cool... I'll help you make the evil doll useful. What? What can I do?";
+			next;
+			mes "[Rust Blackhand]";
+			mes "I can make the strong and large horns of the wicked devil Baphomet for you. A helm that has his immense power.";
+			next;
+			mes "[Rust Blackhand]";
+			mes "It is called the ^4d4dffGigantic Magestic Goat^000000. You'll realize that the Magestic Goat you're familiar with is nothing in comparison.";
+			next;
+			mes "[Rust Blackhand]";
+			mes "The Cursed Baphomet Doll is the most important ingredient... I'll make you if you want. What would you like to do?";
+			next;
+			switch(select("I want to make one!:I don't need one.")) {
+			case 1:
+				mes "[Rust Blackhand]";
+				mes "kkk... Yes, wise men take their chances when the opportunity comes. I'll tell you the ingredients. Don't forget, and bring them all.";
+				next;
+				mes "[Rust Blackhand]";
+				mes "^0000FFCursed Baphomet Doll, Magestic Goat, 30 Crystal of Darkness, 50 Fragment of Darkness^000000, and the most important, production cost is ^0000FF990000^000000 Zeny.";
+				next;
+				mes "[Rust Blackhand]";
+				mes "You can get the Magestic Goat from the weak Baphomet in the Labyrinth Forest. Crystal of Darkness and Fragment of Darkness are from the Incarnation of Morocc.";
+				next;
+				mes "[Rust Blackhand]";
+				mes "I'm sure that you can get the ingredients because you sealed the real Baphomet. Can't you? kkk...";
+				next;
+				mes "[Rust Blackhand]";
+				mes "You'll never know how great this hat is until you get one. If you understood, go and get the ingredients.";
+				if (isbegin_quest(3042))
+					changequest 3042,3043;
+				else
+					setquest 3043;
+				close;
+			case 2:
+				mes "[Rust Blackhand]";
+				mes "Huh... Do you? Do whatever you want... Do you really want to let this opportunity go to waste?";
+				next;
+				mes "[Rust Blackhand]";
+				mes "Tut, tut... I don't care if the wicked doll threatens your life all the time!";
+				close;
+			}
+		case 2:
+			mes "[Rust Blackhand]";
+			mes "What a dull boy he is... huh...";
+			close;
+		}
+	}
+	else if ((.@new_maje == -1) && (countitem(6004) == 0)) {
+		mes "[Rust Blackhand]";
+		mes "If you don't have business with me, go away! As you see, I make equipment for the Brothers at the monastery, not for adventurers like you. Do you understand?";
+		close;
+	}
+	else if ((.@new_maje == 2) && (countitem(6004) > 0)) {
+		switch(select("About the Cursed Baphomet Doll:Stop talking.")) {
+		case 1:
+			mes "[Rust Blackhand]";
+			mes "What?... You again? What do you want this time?";
+			next;
+			mes "[Rust Blackhand]";
+			mes "What? You got another doll from the wicked devil? Umm... You're much better than I thought...";
+			next;
+			mes "[Rust Blackhand]";
+			mes "Alright... I'll help you again.";
+			next;
+			mes "[Rust Blackhand]";
+			mes "If you want to make the doll into a ^4d4dffGigantic Magestic Goat^000000 again, I can make you another.";
+			next;
+			mes "[Rust Blackhand]";
+			mes "I'll tell you the ingredients again. So, do you want to make?";
+			next;
+			switch(select("I want.:No, I don't want.")) {
+			case 1:
+				mes "[Rust Blackhand]";
+				mes "kkk... Yes, wise men take their chances when the opportunity comes. I'll tell you the ingredients. Don't forget, and bring them all.";
+				next;
+				mes "[Rust Blackhand]";
+				mes "^0000FFCursed Baphomet Doll, Magestic Goat, 30 Crystal of Darkness, 50 Fragment of Darkness^000000, and the most important, production cost is ^0000FF990000^000000 Zeny.";
+				next;
+				mes "[Rust Blackhand]";
+				mes "You can get the Magestic Goat from the weak Baphomet in the Labyrinth Forest. Crystal of Darkness and Fragment of Darkness are from the Incarnation of Morocc.";
+				next;
+				mes "[Rust Blackhand]";
+				mes "I'm sure that you can get the ingredients because you sealed the real Baphomet. Can't you? kkk...";
+				next;
+				mes "[Rust Blackhand]";
+				mes "You'll never know how great this hat is until you get one. If you understood, go and get the ingredients.";
+				//recall_completequest 3043
+				if (isbegin_quest(3042))
+					changequest 3042,3043;
+				else {
+					erasequest 3043;
+					setquest 3043;
+				}
+				close;
+			case 2:
+				mes "[Rust Blackhand]";
+				mes "Huh... Do you? Do whatever you want... Do you really want to let this opportunity go to waste?";
+				next;
+				mes "[Rust Blackhand]";
+				mes "Tut, tut... I don't care if the wicked doll threatens your life all the time!";
+				close;
+			}
+		case 2:
+			mes "[Rust Blackhand]";
+			mes "What a dull boy he is... huh...";
+			close;
+		}
+	}
+	else if ((.@new_maje == 2) && (countitem(6004) == 0)) {
+		mes "[Rust Blackhand]";
+		mes "Why are you hanging around here? If you don't want a ^4d4dffGigantic Magestic Goat^000000, go away.";
+		close;
+	}
+}
+
+// Sealed Shrine Interior
+//============================================================
+1@cata,1,2,0	script	ins_baphomet_lotto	-1,{
+OnInstanceInit:
+	// Pick one "true" Gravestone and 12 "false" Gravestones.
+	set .@true, rand(1,13);
+	for(set .@i,1; .@i<=13; set .@i,.@i+1) {
+		disablenpc instance_npcname("Gravestone#1F_"+.@i+((.@i == .@true)?"T":"F"));
+	}
+	disablenpc instance_npcname("ins_baphomet_lotto");
+	end;
+}
+
+1@cata,3,2,0	script	ins_baphomet_lotto2	-1,{
+OnEnable:
+	for(set .@i,1; .@i<=12; set .@i,.@i+1)
+		enablenpc instance_npcname("Bobbing Torch#"+.@i);
+	end;
+}
+
+1@cata,4,2,0	script	ins_baphomet_lotto3	-1,{
+OnInstanceInit:
+	'level_mode = $SEALEDMODE[instance_live_info(ILI_OWNER)];
+	end;
+OnEnable:
+	set .@label$, instance_npcname("ins_baphomet_lotto3")+"::OnMyMobDead";
+	set .@map$, instance_mapname("1@cata");
+	callfunc "F_Sealed_Monster",1,instance_mapname("1@cata"),instance_npcname("ins_baphomet_lotto3")+"::OnMyMobDead";
+	end;
+
+OnDisable:
+	killmonster instance_mapname("1@cata"),instance_npcname("ins_baphomet_lotto3")+"::OnMyMobDead";
+	end;
+
+OnMyMobDead:
+	callfunc "F_Sealed_Exp";
+	set .@map$, instance_mapname("1@cata");
+	if (mobcount(.@map$,instance_npcname("ins_baphomet_lotto3")+"::OnMyMobDead") < 1) {
+		mapannounce .@map$, "All apostles of Baphomet are dead!",bc_map,"0x00ff99";
+	}
+	getitem 6002,1; //Token_Of_Apostle
+	end;
+}
+
+// Soul of hero near the north grave
+//============================================================
+1@cata,141,221,0	script	Gravestone#	844,3,3,{
+	set .@party_id,getcharid(1);
+	if ('ins_baphomet == 0) {
+		mes "The gravestone is trembling...";
+		next;
+		mes "When touching the gravestone, I hear a voice.";
+		next;
+		specialeffect2 EF_CONE;
+		mes "[Voice of the Gravestone]";
+		mes "I have waited and waited for a brave adventurer like you who will come back here again...";
+		next;
+		while(1) {
+			switch(select("Who are you?:Waited for me?:Cancel.")) {
+			case 1:
+				mes "[Voice of the Gravestone]";
+				mes "I was one of the warriors to stop Baphomet like you. Now, I'm dead and only my soul remains...";
+				next;
+				mes "[Voice of the Gravestone]";
+				mes "As you know... We don't have much time. You can't stop Baphomet by yourselves. The power of the devil has strengthened over the years.";
+				next;
+				mes "[Voice of the Gravestone]";
+				mes "In the past, my companions and I sealed Baphomet at the altar located on the 2nd basement and blocked the entrance.";
+				next;
+				mes "[Voice of the Gravestone]";
+				mes "I moved my soul's essence to my pendant, so that I could remain in this world. That's when I became this grave's guardian.";
+				next;
+				break;
+			case 2:
+				mes "[Voice of the Gravestone]";
+				mes "Baphomet's power is about to break the seal that we made. If you don't reactivate them... Baphomet's revival will only be a matter of time.";
+				next;
+				mes "[Voice of the Gravestone]";
+				mes "To open the entrance, you must substantialize my soul. I'll open the entrance and reactivate the weakened seals after I am substantilized.";
+				next;
+				mes "[Voice of the Gravestone]";
+				mes "To substantialize my soul, you should find my pendant. You can find my body near a grave here.";
+				next;
+				mes "[Voice of the Gravestone]";
+				mes "If your ^0000FFparty leader^000000 brings me the pendant, my soul can be substantialized. So, hurry up.";
+				set 'ins_baphomet,1;
+				close;
+			case 3:
+				mes "I can feel the voice becoming faint.";
+				close;
+			}
+		}
+	}
+	else if ('ins_baphomet == 1) {
+		mes "[Voice of the Gravestone]";
+		mes "To open the entrance, you must substantialize my soul. I'll open the entrance and reactivate the weakened seals after I am substantilized.";
+		next;
+		mes "[Voice of the Gravestone]";
+		mes "To substantialize my soul, you should find my pendant. You can find my body near a grave here.";
+		next;
+		mes "[Voice of the Gravestone]";
+		mes "If your ^0000FFparty leader^000000 brings me the pendant, my soul can be substantialized. So, hurry up.";
+		close;
+	}
+	else if (('ins_baphomet == 2) && is_party_leader(.@party_id) == true) {
+		mes "[Voice of the Gravestone]";
+		mes "Did you find the pendant?";
+		next;
+		if (countitem(6003) > 0) {
+			specialeffect EF_MAPPILLAR;
+			mes "[Voice of the Gravestone]";
+			mes "Yes... This is... My pendant...";
+			next;
+			delitem 6003,1; //Soul_Pendant
+			enablenpc instance_npcname("Ancient Hero's Soul#1F");
+			disablenpc instance_npcname("Gravestone#");
+			mes "[Voice of the Gravestone]";
+			mes "Now I can substantialize my soul. I'll wait for you in front of the altar of fire located at the center of this grave. Let's meet there.";
+			next;
+			mapannounce instance_mapname("1@cata"), "Ancient Hero's Soul : I'll wait for you in front of the altar of fire located at the center",bc_map,"0xFFFF00";
+			mes "I can feel the voice becoming faint.";
+			close;
+		}
+		else {
+			mes "[Voice of the Gravestone]";
+			mes "Are you still there? Bring back my pendant as soon as possible.";
+			next;
+			mes "[Voice of the Gravestone]";
+			mes "You can find my body near a grave here. Go and get my pendant there.";
+			close;
+		}
+	}
+	else {
+		mes "[Voice of the Gravestone]";
+		mes "I want to talk to ^0000FFa representative among your party^000000. Everyone else, wait here.";
+		close;
+	}
+	end;
+
+OnTouch:
+	if ('ins_baphomet == 0) {
+		mes "'Krrrr... Krrrr...'";
+		next;
+		mes "I can feel something odd at the grave. It's like someone is calling out silently...";
+		close;
+	}
+	end;
+
+OnInstanceInit: // Temporary fix for @reloadscript.
+	set 'ins_baphomet,0;
+	end;
+}
+
+1@cata,176,119,4	script	Ancient Hero's Soul#1F	411,{
+	set .@party_id,getcharid(1);
+	cutin "ins_cata_champ_n",2;
+	if ('ins_baphomet == 2) {
+		mes "[Ancient Hero's Soul]";
+		mes "With your help, my soul can be substantialized. I want to talk more, but we do not have enough time...";
+		next;
+		mes "[Ancient Hero's Soul]";
+		mes "I must be substantialized within the next hour. To reach the Main Altar underground, you must help me perform the ceremony for opening each seal.";
+		next;
+		mes "[Ancient Hero's Soul]";
+		mes "Now I'll tell you what should you do. First, collect ^0000FFEssence of Fire^000000 from the torches on the graves...";
+		next;
+		mes "[Ancient Hero's Soul]";
+		mes "Second, all members who will enter the underground must carry a symbol, called the Token of Apostle.";
+		next;
+		while(1) {
+			cutin "ins_cata_champ_n",2;
+			switch(select("What is Essence of Fire?:What is a Token of Apostle?:What should I do?:I am ready.")) {
+			case 1:
+				set .@ins_baphomet_1f_1,.@ins_baphomet_1f_1+1;
+				mes "[Ancient Hero's Soul]";
+				mes "You can see the torches here and there. These torches are the essence of Thor, the god of Thunder. They are inherited from our predecessors to stop the darkness of Baphomet...";
+				next;
+				mes "[Ancient Hero's Soul]";
+				mes "To open the sealed underground gate, I must be purified by the ^0000FFEssence of Fire^000000 which has the power of Thor. Collect ^0000FF10 Essence of Fire^000000 from the torches.";
+				next;
+				mes "[Ancient Hero's Soul]";
+				mes "One thing you must remember is... ^0000FFEssence of Fire^000000 can only be collected by the Inheritor of Faith.";
+				next;
+				mes "[Ancient Hero's Soul]";
+				mes "I'll give the token of the Inheritor of Faith to the party leader. Only the party leader can collect the ^0000FFEssence of Fire^000000.";
+				next;
+				break;
+			case 2:
+				set .@ins_baphomet_1f_2,.@ins_baphomet_1f_2+1;
+				mes "[Ancient Hero's Soul]";
+				mes "At that time, it was impossible to get rid of Devil Baphomet by ourselves. After numerous heroes sacrificed their lives, we could barely seal him under this Abbey.";
+				next;
+				mes "[Ancient Hero's Soul]";
+				mes "However, Baphomet never gave up. He continuously strengthened his power. And his power has brought new life to this shrine.";
+				next;
+				mes "[Ancient Hero's Soul]";
+				mes "Some of these monsters have magical powers. Baphomet calls them his 'Apostles'.";
+				next;
+				mes "[Ancient Hero's Soul]";
+				mes "The apostles are cloning themselves to fill the shrine with their evil energy. They are the monsters here in this catacomb.";
+				next;
+				mes "[Ancient Hero's Soul]";
+				mes "Kill the Apostles. They can only be distinguished from their clones because they will possess a ^0000FFToken of Apostle^000000...";
+				next;
+				mes "[Ancient Hero's Soul]";
+				mes "If each party member possesses a ^0000FFToken of Apostle^000000, Baphomet will not be able to perceive your entrance to the Main Altar underground.";
+				next;
+				mes "[Ancient Hero's Soul]";
+				mes "If Baphomet perceives you when you pass through the sealed gate, he may release his tremendous magical power. Then, this abbey will be demolished.";
+				next;
+				mes "[Ancient Hero's Soul]";
+				mes "Kill the apostles and get the ^0000FFToken of Apostle^000000.";
+				next;
+				break;
+			case 3:
+				set .@ins_baphomet_1f_3,.@ins_baphomet_1f_3+1;
+				if (is_party_leader(.@party_id) == true) {
+					mes "[Ancient Hero's Soul]";
+					mes "You look like the leader of this party. You need to go and get ^0000FF10 Essence of Fire^000000 from the torches.";
+					next;
+					mes "[Ancient Hero's Soul]";
+					mes "Now I'll carve you the symbol which shows you're a inheritor of faith. Be aware that no one in your party but you can collect the Essence of Fire.";
+					next;
+					specialeffect2 EF_HOLYHIT;
+					mes "[Ancient Hero's Soul]";
+					mes "You should also carry a ^0000FFToken of Apostle^000000, so find one for yourself too.";
+					next;
+					mes "[Ancient Hero's Soul]";
+					mes "When all of you are ready to go, let me know. I'll open the sealed gate when you're ready.";
+					next;
+				}
+				else {
+					mes "[Ancient Hero's Soul]";
+					mes "Make sure that your party leader has listened to my explanation of what you and your companions must do.";
+					next;
+					mes "[Ancient Hero's Soul]";
+					mes "Kill the Apostles of Baphomet and find their ^0000FFToken of Apostle^000000.";
+					next;
+					mes "[Ancient Hero's Soul]";
+					mes "It might be better to kill all of them because there is no way to differentiate them from their clones.";
+					next;
+					mes "[Ancient Hero's Soul]";
+					mes "Are you ready?";
+					mes "Make sure that you have listened to all that I have to say before saying that you are ready.";
+					next;
+				}
+				break;
+			case 4:
+				if ((.@ins_baphomet_1f_1 > 0) && (.@ins_baphomet_1f_2 > 0) && (.@ins_baphomet_1f_3 > 0)) {
+					cutin "ins_cata_champ_n",2;
+					mes "[Ancient Hero's Soul]";
+					mes "Are you ready to go? Then I'll open this sealed gate now.";
+					next;
+					set .@exitloop,1;
+				}
+				else {
+					cutin "ins_cata_champ_a",2;
+					mes "[Ancient Hero's Soul]";
+					mes "It may be difficult but I wish you luck braving the perils of this catacomb.";
+					next;
+					mes "[Ancient Hero's Soul]";
+					mes "Remember, you need to collect ^0000FF10 Essence of Fire^000000 from the torches and the ^0000FFToken of Apostle^000000 from the Apostles of Baphomet.";
+					next;
+				}
+				break;
+			}
+			if (.@exitloop) break;
+		}
+		if (is_party_leader(.@party_id) == true) {
+			mes "[Ancient Hero's Soul]";
+			mes "To remind you again, I must be substantialized within the next hour. So everyone, finish your work within that time!";
+			set 'ins_baphomet,3;
+			donpcevent instance_npcname("ins_baphomet_1f_timer")+"::OnEnable";
+			donpcevent instance_npcname("ins_baphomet_lotto2")+"::OnEnable";
+			donpcevent instance_npcname("ins_baphomet_lotto3")+"::OnEnable";
+		}
+		else {
+			mes "[Ancient Hero's Soul]";
+			mes "To remind you again, I can be substantialized for the next hour. So everyone, finish your work within that time.";
+			//set 'ins_baphomet,3;
+		}
+		close2;
+		cutin "",255;
+		end;
+	}
+	else if (('ins_baphomet == 3) && is_party_leader(.@party_id) == true) {
+		cutin "ins_cata_champ_n",2;
+		mes "[Ancient Hero's Soul]";
+		mes "Did you get 10 ^0000FFEssence of Fire^000000 and ^0000FFToken of Apostle^000000?";
+		next;
+		if ((countitem(6001) > 9) && (countitem(6002) > 0)) {
+			delitem 6001,countitem(6001); //Essence_Of_Fire
+			set 'ins_baphomet,4;
+			mes "[Ancient Hero's Soul]";
+			mes "Okay. You've done your work. Now check your companions and tell me when everyone has finished their work.";
+		}
+		else {
+			mes "[Ancient Hero's Soul]";
+			mes "Not ready yet? You should prepare 10 ^0000FFEssence of Fire^000000 and ^0000FFToken of Apostle^000000.";
+		}
+		close2;
+		cutin "",255;
+		end;
+	}
+	else if ('ins_baphomet == 3) {
+		cutin "ins_cata_champ_n",2;
+		mes "[Ancient Hero's Soul]";
+		mes "Do you have a ^0000FFToken of Apostle^000000?";
+		next;
+		if (countitem(6002) > 0) {
+			set 'ins_baphomet,4;
+			mes "[Ancient Hero's Soul]";
+			mes "Okay. You've done your work. Tell your representative to check your companions and come to me when everyone has finished their work.";
+		}
+		else {
+			mes "[Ancient Hero's Soul]";
+			mes "Not ready yet? You should prepare ^0000FFToken of Apostle^000000.";
+		}
+		close2;
+		cutin "",255;
+		end;
+	}
+	else if (('ins_baphomet == 4) && is_party_leader(.@party_id) == true) {
+		cutin "ins_cata_champ_n",2;
+		mes "[Ancient Hero's Soul]";
+		mes "Are you ready? I opened the sealed gate. To pass the gate, you should carry a ^0000FFToken of Apostle^000000.";
+		next;
+		set 'ins_baphomet,5;
+		specialeffect EF_TELEPORTATION;
+		enablenpc instance_npcname("ins_bapho_to_2f");
+		donpcevent instance_npcname("ins_baphomet_1f_timer")+"::OnDisable";
+		mes "[Ancient Hero's Soul]";
+		mes "Now you can go to the main altar. It is located in the bottom right corner of this floor.";
+		next;
+		mes "[Ancient Hero's Soul]";
+		mes "Your real battle will begin... I'll follow you soon and find a way to help you.";
+		next;
+		mes "[Ancient Hero's Soul]";
+		mes "Go ahead, warriors.";
+		cutin "",255;
+		mapannounce instance_mapname("1@cata"), "Ancient Hero's Soul : Now you can go to the Main Altar's gate. It is located in the Southeast",bc_map,"0xFFFF00";
+		close;
+	}
+	else if ('ins_baphomet == 4) {
+		cutin "ins_cata_champ_n",2;
+		mes "[Ancient Hero's Soul]";
+		mes "Are you ready? I opened the sealed gate. To pass the gate, you should carry a ^0000FFToken of Apostle^000000.";
+		next;
+		mes "[Ancient Hero's Soul]";
+		mes "I'll complete opening the sealed gate when your representative tells me that you're ready.";
+		cutin "",255;
+		close;
+	}
+	else if ('ins_baphomet == 5) {
+		cutin "ins_cata_champ_n",2;
+		mes "[Ancient Hero's Soul]";
+		mes "What are you doing? The entrance of the main altar is opened now, go and fight! The entrance is near the bottom right side of this floor.";
+		cutin "",255;
+		close;
+	}
+	else {
+		cutin "ins_cata_champ_n",2;
+		mes "[Ancient Hero's Soul]";
+		mes "I have nothing to say to you...";
+		cutin "",255;
+		close;
+	}
+
+OnInstanceInit:
+	disablenpc instance_npcname("Ancient Hero's Soul#1F");
+	end;
+}
+
+// To 2F Warp
+//============================================================
+1@cata,281,12,0	script	ins_bapho_to_2f	45,1,1,{
+OnTouch:
+	if (countitem(6002) > 0) {
+		delitem 6002,countitem(6002); //Token_Of_Apostle
+		set 'ins_baphomet,5;
+		warp instance_mapname("2@cata"),80,144;
+		end;
+	}
+	else {
+		mes "[Ancient Hero's Soul]";
+		mes "Where is your Token of Apostle? I said you should carry the Token of Apostle to pass this gate.";
+		close;
+	}
+
+OnInstanceInit:
+	disablenpc instance_npcname("ins_bapho_to_2f");
+	end;
+}
+
+// Gravestones
+//============================================================
+-	script	Gravestone#SS1	-1,{
+	if ('ins_baphomet == 1) {
+		getitem 6003,1; //Soul_Pendant
+		set 'ins_baphomet,2;
+		mes "A small object is shining under a leaning grave.";
+		next;
+		mes "[" + strcharinfo(0) + "]";
+		mes "I think this is the pendant...";
+		close;
+	}
+	else {
+		mes "I can only feel gloom from this Gravestone.";
+		close;
+	}
+}
+1@cata,86,214,0	duplicate(Gravestone#SS1)	Gravestone#1F_1T	844
+1@cata,200,209,0	duplicate(Gravestone#SS1)	Gravestone#1F_2T	844
+1@cata,230,195,0	duplicate(Gravestone#SS1)	Gravestone#1F_3T	844
+1@cata,118,182,0	duplicate(Gravestone#SS1)	Gravestone#1F_4T	844
+1@cata,193,182,0	duplicate(Gravestone#SS1)	Gravestone#1F_5T	844
+1@cata,253,156,0	duplicate(Gravestone#SS1)	Gravestone#1F_6T	844
+1@cata,88,154,0	duplicate(Gravestone#SS1)	Gravestone#1F_7T	844
+1@cata,127,116,0	duplicate(Gravestone#SS1)	Gravestone#1F_8T	844
+1@cata,90,98,0	duplicate(Gravestone#SS1)	Gravestone#1F_9T	844
+1@cata,188,84,0	duplicate(Gravestone#SS1)	Gravestone#1F_10T	844
+1@cata,244,42,0	duplicate(Gravestone#SS1)	Gravestone#1F_11T	844
+1@cata,127,32,0	duplicate(Gravestone#SS1)	Gravestone#1F_12T	844
+1@cata,267,30,0	duplicate(Gravestone#SS1)	Gravestone#1F_13T	844
+
+-	script	Gravestone#SS2	-1,{
+	mes "I can only feel gloom from this Gravestone.";
+	close;
+}
+1@cata,86,214,0	duplicate(Gravestone#SS2)	Gravestone#1F_1F	844
+1@cata,200,209,0	duplicate(Gravestone#SS2)	Gravestone#1F_2F	844
+1@cata,230,195,0	duplicate(Gravestone#SS2)	Gravestone#1F_3F	844
+1@cata,118,182,0	duplicate(Gravestone#SS2)	Gravestone#1F_4F	844
+1@cata,193,182,0	duplicate(Gravestone#SS2)	Gravestone#1F_5F	844
+1@cata,253,156,0	duplicate(Gravestone#SS2)	Gravestone#1F_6F	844
+1@cata,88,154,0	duplicate(Gravestone#SS2)	Gravestone#1F_7F	844
+1@cata,127,116,0	duplicate(Gravestone#SS2)	Gravestone#1F_8F	844
+1@cata,90,98,0	duplicate(Gravestone#SS2)	Gravestone#1F_9F	844
+1@cata,188,84,0	duplicate(Gravestone#SS2)	Gravestone#1F_10F	844
+1@cata,244,42,0	duplicate(Gravestone#SS2)	Gravestone#1F_11F	844
+1@cata,127,32,0	duplicate(Gravestone#SS2)	Gravestone#1F_12F	844
+1@cata,267,30,0	duplicate(Gravestone#SS2)	Gravestone#1F_13F	844
+
+// Bobbing Torches
+//============================================================
+-	script	Bobbing Torch#SS	-1,{
+	if (is_party_leader() == true) {
+		if (('ins_baphomet == 3) && (countitem(6001) < 11)) {
+			mes "A huge torch appearing as if it can burn everything is bobbing up and down in front of me.";
+			next;
+			mes "The grand appearance and heat of the fire makes me step back... But I pluck up my courage and reach out to pick up the torch.";
+			next;
+			specialeffect2 EF_HOLYHIT;
+			getitem 6001,1; //Essence_Of_Fire
+			mes "The symbol of inheritor shines. Then a small crystal falls into my hand from the torch.";
+			disablenpc();
+			close;
+		}
+		else if (('ins_baphomet == 3) && (countitem(6001) > 10)) {
+			mes "You have 10 Essence of Fire already, so you don't need to collect any more.";
+			close;
+		}
+		else {
+			mes "You don't need to collect Essence of Fire anymore.";
+			close;
+		}
+	}
+	else {
+		mes "A huge torch appearing as if it can burn everything is bobbing up and down in front of me..";
+		next;
+		mes "[Unknown Voice]";
+		mes "You are not a inheritor of faith. Do not desecrate the Essence of Fire with your disrespectful hands.";
+		specialeffect2 EF_FIRESPLASHHIT;
+		percentheal -50,0;
+		close;
+	}
+
+OnInstanceInit:
+	disablenpc();
+	end;
+}
+1@cata,267,210,0	duplicate(Bobbing Torch#SS)	Bobbing Torch#1	844
+1@cata,85,182,0	duplicate(Bobbing Torch#SS)	Bobbing Torch#2	844
+1@cata,267,154,0	duplicate(Bobbing Torch#SS)	Bobbing Torch#3	844
+1@cata,157,139,0	duplicate(Bobbing Torch#SS)	Bobbing Torch#4	844
+1@cata,193,138,0	duplicate(Bobbing Torch#SS)	Bobbing Torch#5	844
+1@cata,193,102,0	duplicate(Bobbing Torch#SS)	Bobbing Torch#6	844
+1@cata,157,102,0	duplicate(Bobbing Torch#SS)	Bobbing Torch#7	844
+1@cata,113,112,0	duplicate(Bobbing Torch#SS)	Bobbing Torch#8	844
+1@cata,253,56,0	duplicate(Bobbing Torch#SS)	Bobbing Torch#9	844
+1@cata,239,56,0	duplicate(Bobbing Torch#SS)	Bobbing Torch#10	844
+1@cata,71,42,0	duplicate(Bobbing Torch#SS)	Bobbing Torch#11	844
+1@cata,155,14,0	duplicate(Bobbing Torch#SS)	Bobbing Torch#12	844
+
+1@cata,1,1,0	script	ins_baphomet_1f_timer	-1,{
+OnInstanceInit:
+	disablenpc instance_npcname("ins_baphomet_1f_timer");
+	end;
+
+OnEnable:
+	enablenpc instance_npcname("ins_baphomet_1f_timer");
+	initnpctimer;
+	end;
+
+OnDisable:
+	disablenpc instance_npcname("ins_baphomet_1f_timer");
+	stopnpctimer;
+	end;
+
+OnTimer1800000:
+	mapannounce instance_mapname("1@cata"), "Ancient Hero's Soul : We don't have enough time! Hurry up!",bc_map,"0xFFFF00";
+	end;
+
+OnTimer2400000:
+	mapannounce instance_mapname("1@cata"), "Ancient Hero's Soul : My body is disappearing... Hurry up!",bc_map,"0xFFFF00";
+	end;
+
+OnTimer3000000:
+	mapannounce instance_mapname("1@cata"), "Ancient Hero's Soul : Everything is over... There is no other way but to wait for the next chance...",bc_map,"0xFFFF00";
+	end;
+
+OnTimer3050000:
+	mapannounce instance_mapname("1@cata"), "Ancient Hero's Soul : We failed... However... We still have a chance. I hope you will train yourselves until the time comes.",bc_map,"0xFFFF00";
+	end;
+
+OnTimer3100000:
+	mapannounce instance_mapname("1@cata"), "You've failed to open the seal of main altar.",bc_map,"0xFFFF00";
+	end;
+
+OnTimer3500000:
+	instance_warpall "monk_test",310,150, instance_id();
+	stopnpctimer;
+	end;
+}
+
+2@cata,80,144,0	script	ins_2f_enter	-1,3,3,{
+OnTouch_:
+	donpcevent instance_npcname("ins_2f_enter_broad")+"::OnEnable";
+	disablenpc instance_npcname("ins_2f_enter");
+	end;
+}
+
+2@cata,1,1,0	script	ins_2f_enter_broad	-1,{
+OnInstanceInit:
+OnDisable:
+	disablenpc instance_npcname("ins_2f_enter_broad");
+	end;
+
+OnEnable:
+	enablenpc instance_npcname("ins_2f_enter_broad");
+	initnpctimer;
+	end;
+
+OnTimer10000:
+	mapannounce instance_mapname("2@cata"), "Baphomet : Humans... interfering again...",bc_map,"0xdb7093";
+	end;
+
+OnTimer13000:
+	mapannounce instance_mapname("2@cata"), "Apostle of Baphomet : Humans! Humans have invaded our sanctum!",bc_map,"0xFFFF00";
+	end;
+
+OnTimer16000:
+	mapannounce instance_mapname("2@cata"), "Apostle of Baphomet : Kill the humans! Do not stop the revival of our Master!",bc_map,"0xFFFF00";
+	end;
+
+OnTimer18000:
+	mapannounce instance_mapname("2@cata"), "Apostle of Baphomet : Hurry up and release the seals of the altars! Our Master's return is upon us!",bc_map,"0xFFFF00";
+	stopnpctimer;
+	disablenpc instance_npcname("ins_2f_enter_broad");
+	end;
+}
+
+2@cata,50,67,0	script	slave_left	-1,5,5,{
+OnInstanceInit:
+	'level_mode = $SEALEDMODE[instance_live_info(ILI_OWNER)];
+	end;
+OnTouch_:
+	set .@map$, instance_mapname("2@cata");
+	set .@label$, instance_npcname("slave_left")+"::OnMyMobDead";
+	mapannounce .@map$, "Apostle of Baphomet : Kill the humans! Don't let them interrupt the revival of our Master!",bc_map,"0xFFFF00";
+	callfunc "F_Sealed_Monster",2,instance_mapname("2@cata"),instance_npcname("slave_left")+"::OnMyMobDead";
+	disablenpc instance_npcname("slave_left");
+	end;
+OnMyMobDead:
+	callfunc "F_Sealed_Exp";
+	end;
+}
+
+2@cata,109,67,0	script	slave_right	-1,5,5,{
+OnInstanceInit:
+	'level_mode = $SEALEDMODE[instance_live_info(ILI_OWNER)];
+	end;
+OnTouch_:
+	set .@map$, instance_mapname("2@cata");
+	set .@label$, instance_npcname("slave_right")+"::OnMyMobDead";
+	mapannounce .@map$, "Apostle of Baphomet : Kill the humans! Don't let them interrupt the revival of our Master!",bc_map,"0xFFFF00";
+	callfunc "F_Sealed_Monster",3,instance_mapname("2@cata"), instance_npcname("slave_right")+"::OnMyMobDead";
+	disablenpc instance_npcname("slave_right");
+	end;
+OnMyMobDead:
+	callfunc "F_Sealed_Exp";
+	end;	
+}
+
+2@cata,79,39,0	script	slave_down	-1,5,5,{
+OnInstanceInit:
+	'level_mode = $SEALEDMODE[instance_live_info(ILI_OWNER)];
+	end;
+OnTouch_:
+	set .@map$, instance_mapname("2@cata");
+	set .@label$, instance_npcname("slave_down")+"::OnMyMobDead";
+	mapannounce .@map$, "Apostle of Baphomet : Kill the humans! Don't let them interrupt the revival of our Master!",bc_map,"0xFFFF00";
+	callfunc "F_Sealed_Monster",4,instance_mapname("2@cata"),instance_npcname("slave_down")+"::OnMyMobDead";
+	disablenpc instance_npcname("slave_down");
+	end;
+OnMyMobDead:
+	callfunc "F_Sealed_Exp";
+	end;	
+}
+
+// Magical Seals
+//============================================================
+-	script	Magical Seal#SS	-1,{
+	set .@seal_check,checkquest(3041,PLAYTIME);
+	if (.@seal_check == 0 || .@seal_check == 1) {
+		specialeffect2 EF_SILENCEATTACK;
+		percentheal -50,0;
+		sc_start SC_Stone,30000,0;
+		mes "Your SP has not recovered yet. You lost your SP on the altar, but it seems the power of the seal has returned.";
+		close;
+	}
+	if (.@seal_check == 2) erasequest 3041;
+	specialeffect EF_LEXDIVINA;
+	disablenpc();
+	set .@map$, instance_mapname("2@cata");
+	if (strnpcinfo(2) == "0") areamobuseskill .@map$,79,81,10,1929,"NPC_INVINCIBLEOFF",1,0,0,ET_HELP,0;
+	else if (strnpcinfo(2) == "2") areamobuseskill .@map$,123,109,10,1929,"NPC_INVINCIBLEOFF",1,0,0,ET_HELP,0;
+	else if (strnpcinfo(2) == "4") areamobuseskill .@map$,123,22,10,1929,"NPC_INVINCIBLEOFF",1,0,0,ET_HELP,0;
+	else if (strnpcinfo(2) == "8") areamobuseskill .@map$,35,21,10,1929,"NPC_INVINCIBLEOFF",1,0,0,ET_HELP,0;
+	else if (strnpcinfo(2) == "10") areamobuseskill .@map$,35,109,10,1929,"NPC_INVINCIBLEOFF",1,0,0,ET_HELP,0;
+	percentheal -50,0;
+	sc_start SC_Stone,20000,0;
+	setquest 3041;
+	mapannounce .@map$, "The seal activated by putting magical power into the altar.",bc_map,"0x87ceeb";
+	mes "I can feel the power of the altar came back by adding magical power.";
+	next;
+	mes "But you can't use your magic for 3 minutes because you used your SP on the altar.";
+	close;
+
+OnInstanceInit:
+	disablenpc();
+	end;
+}
+2@cata,79,81,0	duplicate(Magical Seal#SS)	Magical Seal#0	844
+2@cata,123,109,0	duplicate(Magical Seal#SS)	Magical Seal#2	844
+2@cata,123,22,0	duplicate(Magical Seal#SS)	Magical Seal#4	844
+2@cata,35,21,0	duplicate(Magical Seal#SS)	Magical Seal#8	844
+2@cata,35,109,0	duplicate(Magical Seal#SS)	Magical Seal#10	844
+
+2@cata,79,65,0	script	The Main Altar#ss	844,{
+	if (('ins_baphomet == 5) && is_party_leader() == true) {
+		mes "An evil power, too terrible to describe, lies under the great altar radiating a violet color.";
+		next;
+		mes "Complicated Magical Rune letters blink rapidly, attempting to suppress the dreadful power within.";
+		next;
+		mes "The bottom of the Main Altar trembles furiously.";
+		next;
+		specialeffect EF_METEORSTORM;
+		specialeffect EF_METEORSTORM;
+		mes "[" + strcharinfo(0) + "]";
+		mes "Watch out! Something... Something is coming.";
+		set 'ins_baphomet,6;
+		donpcevent instance_npcname("ins_2f_hero_broad")+"::OnEnable";
+		disablenpc instance_npcname("The Main Altar#ss");
+		close;
+	}
+	else {
+		mes "An evil power, too terrible to describe, lies under the great altar radiating a violet color.";
+		next;
+		mes "Complicated Magical Rune letters blink rapidly, attempting to suppress the dreadful power within.";
+		close;
+	}
+	end;
+}
+
+2@cata,80,63,4	script	Ancient Hero's Soul#2F	411,{
+	cutin "ins_cata_champ_s",2;
+	if (checkquest(3041)>=0) erasequest 3041;
+	mes "[Ancient Hero's Soul]";
+	mes "Good job, my descendants... You've finished the long-cherished task that me and my bretheren could not complete.";
+	next;
+	mes "[Ancient Hero's Soul]";
+	mes "I really appreciate your help.";
+	mes "Our souls can finally rest in peace...";
+	next;
+	mes "[Ancient Hero's Soul]";
+	mes "The struggle for peace on this world will never end. But... my role here is finally over because there are brave heroes like you.";
+	next;
+	switch(select("Let me leave the shrine.:Stop talking.")) {
+	case 1:
+		mes "[Ancient Hero's Soul]";
+		mes "Okay. I'll let you and your group leave here safely.";
+		next;
+		mes "[Ancient Hero's Soul]";
+		mes "If you leave, please say hello to Patrick for me.";
+		cutin "",255;
+		set 'ins_baphomet,0;
+		warp "monk_test",310,150;
+		close;
+	case 2:
+		mes "[Ancient Hero's Soul]";
+		mes "Do you still have something to do here? If you're done I'll let you leave safely...";
+		cutin "",255;
+		close;
+	}
+
+OnInstanceInit:
+	disablenpc instance_npcname("Ancient Hero's Soul#2F");
+	end;
+}
+
+2@cata,1,2,0	script	ins_2f_hero_broad	-1,{
+OnEnable:
+	enablenpc instance_npcname("ins_2f_hero_broad");
+	initnpctimer;
+	end;
+
+OnDisable:
+	disablenpc instance_npcname("ins_2f_hero_broad");
+	end;
+
+OnTimer3000:
+	mapannounce instance_mapname("2@cata"), "Ancient Hero's Soul : My God! The seal of the Main Altar is weakening!",bc_map,"0xFFFF00";
+	end;
+
+OnTimer6000:
+	mapannounce instance_mapname("2@cata"), "Ancient Hero's Soul : My descendants... Listen carefully to what I'm going to say.",bc_map,"0xFFFF00";
+	end;
+
+OnTimer9000:
+	mapannounce instance_mapname("2@cata"), "Ancient Hero's Soul : The altars that control the Main Altar's power are located in the Northeast, Southeast, Southwest and Northwest corners of this room.",bc_map,"0xFFFF00";
+	end;
+
+OnTimer12000:
+	mapannounce instance_mapname("2@cata"), "Ancient Hero's Soul : Find these altars and activate their seals before Baphomet revives.",bc_map,"0xFFFF00";
+	end;
+
+OnTimer15000:
+	mapannounce instance_mapname("2@cata"), "Baphomet : It's too late, weaklings... Now, you'll feel the despair of death!",bc_map,"0xdb7093";
+	end;
+
+OnTimer17000:
+	mapannounce instance_mapname("2@cata"), "Baphomet : No one can harm me here. You will be my first sacrifice.",bc_map,"0xdb7093";
+	donpcevent instance_npcname("control_baphomet")+"::OnEnable";
+	donpcevent instance_npcname("ins_2f_hero_broad2")+"::OnEnable";
+	stopnpctimer;
+	disablenpc instance_npcname("ins_2f_hero_broad");
+	end;
+}
+
+2@cata,3,3,0	script	control_baphomet	-1,{
+OnInstanceInit:
+	'level_mode = $SEALEDMODE[instance_live_info(ILI_OWNER)];
+	end;
+OnDisable:
+	disablenpc instance_npcname("control_baphomet");
+	end;
+
+OnEnable:
+	enablenpc instance_npcname("control_baphomet");
+	donpcevent instance_npcname("2f_callmon_pattern_c")+"::OnEnable";
+	//monster instance_mapname("2@cata"),79,64,"Baphomet#",1929,1,instance_npcname("control_baphomet")+"::OnMyMobDead";
+	callfunc "F_Sealed_Monster",6,instance_mapname("2@cata"),instance_npcname("control_baphomet")+"::OnMyMobDead";
+	end;
+
+OnMyMobDead:
+	callfunc "F_Sealed_Reward";
+	set .@map$, instance_mapname("2@cata");
+	if (mobcount(.@map$,instance_npcname("control_baphomet")+"::OnMyMobDead") < 1) {
+		set 'ins_baphomet,7;
+		if (isbegin_quest(3041))
+			erasequest 3041;
+		mapannounce .@map$, "Baphomet : No! Nonono! How dare these weaklings defeat me!... No!!...",bc_map,"0xdb7093";
+		enablenpc instance_npcname("Ancient Hero's Soul#2F");
+		disablenpc instance_npcname("slave_down");
+		disablenpc instance_npcname("slave_left");
+		disablenpc instance_npcname("slave_right");
+		donpcevent instance_npcname("ins_2f_hero_broad")+"::OnDisable";
+		donpcevent instance_npcname("ins_2f_hero_broad2")+"::OnDisable";
+		donpcevent instance_npcname("ins_2f_hero_pattern_c")+"::OnDisable";
+		donpcevent instance_npcname("2f_callmon_pattern_c")+"::OnDisable";
+		donpcevent instance_npcname("2f_callmon_pattern")+"::OnDisable";
+		donpcevent instance_npcname("ins_2f_hero_pattern")+"::OnDisable";
+		donpcevent instance_npcname("ins_2f_enter_broad")+"::OnDisable";
+		donpcevent instance_npcname("control_baphomet")+"::OnDisable";
+		disablenpc instance_npcname("control_baphomet");
+	}
+	end;
+}
+
+2@cata,2,2,0	script	ins_2f_hero_broad2	-1,{
+OnInstanceInit:
+OnDisable:
+	disablenpc instance_npcname("ins_2f_hero_broad2");
+	end;
+
+OnEnable:
+	enablenpc instance_npcname("ins_2f_hero_broad2");
+	initnpctimer;
+	end;
+
+OnTimer8000:
+	mapannounce instance_mapname("2@cata"), "Ancient Hero's Soul : Don't be discouraged, Baphomet can still be defeated!",bc_map,"0xFFFF00";
+	end;
+
+OnTimer11000:
+	mapannounce instance_mapname("2@cata"), "Ancient Hero's Soul : Go to the altars and activate their seals.",bc_map,"0xFFFF00";
+	end;
+
+OnTimer13000:
+	mapannounce instance_mapname("2@cata"), "Ancient Hero's Soul : Once the seals recover their power, Baphomet will be vulnerable.",bc_map,"0xFFFF00";
+	end;
+
+OnTimer16000:
+	mapannounce instance_mapname("2@cata"), "Ancient Hero's Soul : You should lure Baphomet to the unsealed Altars. Otherwise, your efforts will be futile.",bc_map,"0xFFFF00";
+	end;
+
+OnTimer19000:
+	mapannounce instance_mapname("2@cata"), "Ancient Hero's Soul : We have only 1 hour to stop Baphomet. If time runs out, the power of the seals will be useless.",bc_map,"0xFFFF00";
+	end;
+
+OnTimer22000:
+	mapannounce instance_mapname("2@cata"), "Baphomet : It's useless. Make more seals. I'll crush them all. None of you will survive!",bc_map,"0xdb7093";
+	end;
+
+OnTimer26000:
+	mapannounce instance_mapname("2@cata"), "Ancient Hero's Soul : The magical power of the central seal is running out. Go to the central seal and put the magical power.",bc_map,"0xFFFF00";
+	enablenpc instance_npcname("Magical Seal#0");
+	disablenpc instance_npcname("Magical Seal#2");
+	disablenpc instance_npcname("Magical Seal#4");
+	disablenpc instance_npcname("Magical Seal#8");
+	disablenpc instance_npcname("Magical Seal#10");
+	donpcevent instance_npcname("ins_2f_hero_pattern_c")+"::OnEnable";
+	stopnpctimer;
+	disablenpc instance_npcname("ins_2f_hero_broad2");
+	end;
+}
+
+2@cata,4,1,0	script	2f_callmon_pattern_c	-1,{
+OnInstanceInit:
+	disablenpc instance_npcname("2f_callmon_pattern_c");
+	end;
+
+OnEnable:
+	enablenpc instance_npcname("2f_callmon_pattern_c");
+	initnpctimer;
+	donpcevent instance_npcname("2f_callmon_pattern_c")+"::Ongo";
+	end;
+
+OnDisable:
+	stopnpctimer;
+	disablenpc instance_npcname("2f_callmon_pattern_c");
+	end;
+
+Ongo:
+	donpcevent instance_npcname("2f_callmon_pattern")+"::OnEnable";
+	end;
+
+OnTimer3600000:
+	donpcevent instance_npcname("2f_callmon_pattern_c")+"::OnDisable";
+	end;
+}
+
+2@cata,4,2,0	script	2f_callmon_pattern	-1,{
+OnInstanceInit:
+	disablenpc instance_npcname("2f_callmon_pattern");
+	end;
+
+OnEnable:
+	enablenpc instance_npcname("2f_callmon_pattern");
+	stopnpctimer;
+	initnpctimer;
+	end;
+
+OnDisable:
+	disablenpc instance_npcname("2f_callmon_pattern");
+	stopnpctimer;
+	end;
+
+OnTimer300000:
+	enablenpc instance_npcname("slave_down");
+	enablenpc instance_npcname("slave_left");
+	enablenpc instance_npcname("slave_right");
+	donpcevent instance_npcname("2f_callmon_pattern_c")+"::Ongo";
+	end;
+}
+
+2@cata,3,1,0	script	ins_2f_hero_pattern_c	-1,{
+OnInstanceInit:
+	disablenpc instance_npcname("ins_2f_hero_pattern_c");
+	end;
+
+OnEnable:
+	enablenpc instance_npcname("ins_2f_hero_pattern_c");
+	initnpctimer;
+	donpcevent instance_npcname("ins_2f_hero_pattern_c")+"::Ongo";
+	end;
+
+Ongo:
+	donpcevent instance_npcname("ins_2f_hero_pattern")+"::OnEnable";
+	end;
+
+OnDisable:
+	stopnpctimer;
+	disablenpc instance_npcname("Magical Seal#0");
+	disablenpc instance_npcname("Magical Seal#2");
+	disablenpc instance_npcname("Magical Seal#4");
+	disablenpc instance_npcname("Magical Seal#8");
+	disablenpc instance_npcname("Magical Seal#10");
+	donpcevent instance_npcname("ins_2f_hero_pattern")+"::OnDisable";
+	disablenpc instance_npcname("ins_2f_hero_pattern_c");
+	end;
+
+OnTimer3600000:
+	mapannounce instance_mapname("2@cata"), "Baphomet : krrrr... Now you can't stop me with the seals. All you can do is wait for death!",bc_map,"0xdb7093";
+	end;
+
+OnTimer3605000:
+	mapannounce instance_mapname("2@cata"), "Ancient Hero's Soul : We can't stop Baphomet with the magical power of the seals anymore. Now everything depends on God...",bc_map,"0xFFFF00";
+	donpcevent instance_npcname("ins_2f_hero_pattern_c")+"::OnDisable";
+	end;
+}
+
+2@cata,3,2,0	script	ins_2f_hero_pattern	-1,{
+OnInstanceInit:
+	disablenpc instance_npcname("ins_2f_hero_pattern");
+	end;
+
+OnEnable:
+	enablenpc instance_npcname("ins_2f_hero_pattern");
+	initnpctimer;
+	end;
+
+OnDisable:
+	disablenpc instance_npcname("ins_2f_hero_pattern");
+	stopnpctimer;
+	end;
+
+OnTimer70000:
+	switch(rand(1,5)) {
+	case 1:
+		mapannounce instance_mapname("2@cata"), "Ancient Hero's Soul : The seal of the Main Altar is running out. Strengthen the Main Altar's seal!",bc_map,"0xFFFF00";
+		enablenpc instance_npcname("Magical Seal#0");
+		disablenpc instance_npcname("Magical Seal#2");
+		disablenpc instance_npcname("Magical Seal#4");
+		disablenpc instance_npcname("Magical Seal#8");
+		disablenpc instance_npcname("Magical Seal#10");
+		break;
+	case 2:
+		mapannounce instance_mapname("2@cata"), "Ancient Hero's Soul : The magical power of the seal at 2 o'clock is running out. Go to 2 o'clock and put the magical power in the seal.",bc_map,"0xFFFF00";
+		disablenpc instance_npcname("Magical Seal#0");
+		enablenpc instance_npcname("Magical Seal#2");
+		disablenpc instance_npcname("Magical Seal#4");
+		disablenpc instance_npcname("Magical Seal#8");
+		disablenpc instance_npcname("Magical Seal#10");
+		break;
+	case 3:
+		mapannounce instance_mapname("2@cata"), "Ancient Hero's Soul : The magical power of the seal at 4 o'clock is running out. Go to 4 o'clock and put the magical power in the seal.",bc_map,"0xFFFF00";
+		disablenpc instance_npcname("Magical Seal#0");
+		disablenpc instance_npcname("Magical Seal#2");
+		enablenpc instance_npcname("Magical Seal#4");
+		disablenpc instance_npcname("Magical Seal#8");
+		disablenpc instance_npcname("Magical Seal#10");
+		break;
+	case 4:
+		mapannounce instance_mapname("2@cata"), "Ancient Hero's Soul : The magical power of the seal at 8 o'clock is running out. Go to 8 o'clock and put the magical power in the seal.",bc_map,"0xFFFF00";
+		disablenpc instance_npcname("Magical Seal#0");
+		disablenpc instance_npcname("Magical Seal#2");
+		disablenpc instance_npcname("Magical Seal#4");
+		enablenpc instance_npcname("Magical Seal#8");
+		disablenpc instance_npcname("Magical Seal#10");
+		break;
+	case 5:
+		mapannounce instance_mapname("2@cata"), "Ancient Hero's Soul : The magical power of the seal at 10 o'clock is running out. Go to 10 o'clock and put the magical power in the seal.",bc_map,"0xFFFF00";
+		disablenpc instance_npcname("Magical Seal#0");
+		disablenpc instance_npcname("Magical Seal#2");
+		disablenpc instance_npcname("Magical Seal#4");
+		disablenpc instance_npcname("Magical Seal#8");
+		enablenpc instance_npcname("Magical Seal#10");
+	}
+	stopnpctimer;
+	donpcevent instance_npcname("ins_2f_hero_pattern_c")+"::Ongo";
+	end;
+}
+
+
+1@cata,1,1,0	script	ins_1f_spawn_mobs	-1,{
+OnInstanceInit:
+	set .@map$, instance_mapname("1@cata");
+	set .@label$, instance_npcname("ins_1f_spawn_mobs")+"::OnMyMobDead";
+	'level_mode = $SEALEDMODE[instance_live_info(ILI_OWNER)];
+	callfunc "F_Sealed_Monster",5,instance_mapname("1@cata"),instance_npcname("ins_1f_spawn_mobs")+"::OnMyMobDead";
+	disablenpc instance_npcname("ins_1f_spawn_mobs");
+	end;
+OnMyMobDead:
+	callfunc "F_Sealed_Exp";
+	end;
+}
+
+// Difficulty Function
+//============================================================
+function	script	F_Sealed_Monster_Summon	{
+	.@map$ = getarg(0, "");
+	.@x1 = getarg(1, 0);
+	.@y1 = getarg(2, 0);
+	.@mob_name$ = getarg(3, "");
+	.@mob_id = getarg(4, 0);
+	.@amount = getarg(5, 0);
+	.@label$ = getarg(6, "");
+	
+	
+	switch('level_mode){
+		case 1://Normal
+			.@bonus_hp_rate += $@easy_mode_variables[0];
+			.@bonus_dmg_rate += $@easy_mode_variables[1];
+			.@bonus_damagetaken += $@easy_mode_variables[2];
+			.@bonus_def += $@easy_mode_variables[3];
+			.@bonus_mdef += $@easy_mode_variables[4];
+			.@bonus_hit += $@easy_mode_variables[5];			
+			.@bonus_flee += $@easy_mode_variables[6];
+			break;
+		case 2://Veteran
+			.@bonus_hp_rate += $@veteran_mode_variables[0];
+			.@bonus_dmg_rate += $@veteran_mode_variables[1];
+			.@bonus_damagetaken += $@veteran_mode_variables[2];
+			.@bonus_def += $@veteran_mode_variables[3];
+			.@bonus_mdef += $@veteran_mode_variables[4];
+			.@bonus_hit += $@veteran_mode_variables[5];			
+			.@bonus_flee += $@veteran_mode_variables[6];		
+			break;
+		case 3://Nightmare
+			.@bonus_hp_rate += $@nightmare_mode_variables[0];
+			.@bonus_dmg_rate += $@nightmare_mode_variables[1];
+			.@bonus_damagetaken += $@nightmare_mode_variables[2];
+			.@bonus_def += $@nightmare_mode_variables[3];
+			.@bonus_mdef += $@nightmare_mode_variables[4];
+			.@bonus_hit += $@nightmare_mode_variables[5];			
+			.@bonus_flee += $@nightmare_mode_variables[6];					
+			break;
+		case 4://Hell
+			.@bonus_hp_rate += .@hell_mode_variables[0];
+			.@bonus_dmg_rate += .@hell_mode_variables[1];
+			.@bonus_damagetaken += .@hell_mode_variables[2];
+			.@bonus_def += .@hell_mode_variables[3];
+			.@bonus_mdef += .@hell_mode_variables[4];
+			.@bonus_hit += .@hell_mode_variables[5];			
+			.@bonus_flee += .@hell_mode_variables[6];			
+			break;
+		case 5://Torment
+			.@bonus_hp_rate += $@torment_mode_variables[0];
+			.@bonus_dmg_rate += $@torment_mode_variables[1];
+			.@bonus_damagetaken += $@torment_mode_variables[2];
+			.@bonus_def += $@torment_mode_variables[3];
+			.@bonus_mdef += $@torment_mode_variables[4];
+			.@bonus_hit += $@torment_mode_variables[5];			
+			.@bonus_flee += $@torment_mode_variables[6];				
+			break;
+	}
+	
+	deletearray $@mobid,getarraysize($@mobid);
+	monster .@map$, .@x1, .@y1, .@mob_name$, .@mob_id, .@amount, .@label$;
+	copyarray .@GID, $@mobid, getarraysize($@mobid);
+	getunitdata .@GID, .@ST;
+
+freeloop(1);
+	for (.@i = 0; .@i < getarraysize(.@GID); .@i++) {
+		if(.@bonus_hp_rate){
+			.@HP = .@ST[UMOB_MAXHP] + ((.@ST[UMOB_MAXHP] * .@bonus_hp_rate ) /100);			
+				setunitdata(.@GID[.@i], UMOB_MAXHP, .@HP);
+				setunitdata(.@GID[.@i], UMOB_HP, .@HP);
+		}
+		if(.@bonus_dmg_rate){
+			.@ATKMIN = .@ST[UMOB_ATKMIN] + ((.@ST[UMOB_ATKMIN] * .@bonus_dmg_rate) /100);
+			.@ATKMAX = .@ST[UMOB_ATKMAX] + ((.@ST[UMOB_ATKMAX] * .@bonus_dmg_rate) /100);
+			.@MATKMIN = .@ST[UMOB_MATKMIN] + ((.@ST[UMOB_MATKMIN] * .@bonus_dmg_rate) /100);
+			.@MATKMAX = .@ST[UMOB_MATKMAX] + ((.@ST[UMOB_MATKMAX] * .@bonus_dmg_rate) /100);
+				setunitdata(.@GID[.@i], UMOB_ATKMIN, .@ATKMIN);
+				setunitdata(.@GID[.@i], UMOB_ATKMAX, .@ATKMAX);
+				setunitdata(.@GID[.@i], UMOB_MATKMIN, .@MATKMIN);
+				setunitdata(.@GID[.@i], UMOB_MATKMAX, .@MATKMAX);
+		}
+		if(.@bonus_damagetaken){
+			.@DAMAGETAKEN = .@ST[UMOB_DAMAGETAKEN] + ((.@ST[UMOB_DAMAGETAKEN] * .@bonus_damagetaken) /100);
+				setunitdata(.@GID[.@i], UMOB_DAMAGETAKEN, .@DAMAGETAKEN);
+		}
+		if(.@bonus_def){
+			.@DEF = .@ST[UMOB_DEF] + ((.@ST[UMOB_DEF] * .@bonus_def) /100);	
+				setunitdata(.@GID[.@i], UMOB_DEF, .@DEF);
+		}	
+		if(.@bonus_mdef){
+			.@MDEF = .@ST[UMOB_MDEF] + ((.@ST[UMOB_MDEF] * .@bonus_mdef) /100);	
+				setunitdata(.@GID[.@i], UMOB_MDEF, .@MDEF);
+		}
+		if(.@bonus_hit){
+			.@HIT = .@ST[UMOB_HIT] + ((.@ST[UMOB_HIT] * .@bonus_hit) /100);	
+				setunitdata(.@GID[.@i], UMOB_HIT, .@HIT);
+		}		
+		if(.@bonus_flee){
+			.@FLEE = .@ST[UMOB_FLEE] + ((.@ST[UMOB_FLEE] * .@bonus_flee) /100);	
+				setunitdata(.@GID[.@i], UMOB_FLEE, .@FLEE);
+		}
+	}
+freeloop(0);
+return;
+}
+// Exp Reward Function
+//============================================================
+function	script	F_Sealed_Exp	{
+	'bonus_exp = $@bonus_exp['level_mode];
+	getexp2 (getmonsterinfo(killedrid,MOB_BASEEXP) * 'bonus_exp),(getmonsterinfo(killedrid,MOB_JOBEXP) * 'bonus_exp);	
+return;
+}
+// Reward Function
+//============================================================
+function	script	F_Sealed_Reward	{
+	
+	'instance_points = $@instance_points['level_mode];
+	'difficulty_mode$ = $@difficulty_mode$['level_mode];
+	'var_name$ = $@var_names$['level_mode];
+	'party_id = instance_live_info(ILI_OWNER);
+	
+	getpartymember 'party_id, 1;
+	getpartymember 'party_id, 2;
+	'map$ = instance_mapname("2@cata");
+	
+	copyarray .@CID, $@partymembercid, $@partymembercount;
+	copyarray .@AID, $@partymemberaid, $@partymembercount;
+	for (.@i = 0; .@i < getarraysize(.@CID); .@i++) {
+		if (isloggedin(.@AID[.@i], .@CID[.@i])) {
+			if (strcharinfo(3, .@CID[.@i]) == 'map$) {
+				setd("#" + 'var_name$, getd("#" + 'var_name$) + 'instance_points);
+				announce "The party [ " + getpartyname('party_id) + " ] has defeated Sealed Shrine on " + 'difficulty_mode$ + ".", bc_all;
+				message strcharinfo(0, .@CID[.@i]), "You've been granted " + 'instance_points + " " + 'var_name$ + ".";
+				message strcharinfo(0, .@CID[.@i]), "You now have " + getd("#" + 'var_name$) + " " + 'var_name$ + ".";
+			}
+		}
+	}
+	return;
+}
+//== Core Functions ========================================
+function	script	F_Sealed_Monster	{
+
+	'monster_alias$ = $@monster_alias$['level_mode];
+	
+	.@level = getarg(0);
+	.@map$ = getarg(1);
+	.@label$ = getarg(2);
+
+	switch (.@level) {
+		case 1:
+			callfunc("F_Sealed_Monster_Summon", .@map$, 0, 0, "" + 'monster_alias$ + "Apostle of Baphomet", 1869, 1, .@label$);
+			callfunc("F_Sealed_Monster_Summon", .@map$, 0, 0, "" + 'monster_alias$ + "Apostle of Baphomet", 1291, 1, .@label$);
+			callfunc("F_Sealed_Monster_Summon", .@map$, 0, 0, "" + 'monster_alias$ + "Apostle of Baphomet", 1869, 1, .@label$);
+			callfunc("F_Sealed_Monster_Summon", .@map$, 0, 0, "" + 'monster_alias$ + "Apostle of Baphomet", 1291, 1, .@label$);
+			callfunc("F_Sealed_Monster_Summon", .@map$, 0, 0, "" + 'monster_alias$ + "Apostle of Baphomet", 1869, 1, .@label$);
+			callfunc("F_Sealed_Monster_Summon", .@map$, 0, 0, "" + 'monster_alias$ + "Apostle of Baphomet", 1291, 1, .@label$);
+			callfunc("F_Sealed_Monster_Summon", .@map$, 0, 0, "" + 'monster_alias$ + "Apostle of Baphomet", 1869, 1, .@label$);
+			callfunc("F_Sealed_Monster_Summon", .@map$, 0, 0, "" + 'monster_alias$ + "Apostle of Baphomet", 1132, 1, .@label$);
+			callfunc("F_Sealed_Monster_Summon", .@map$, 0, 0, "" + 'monster_alias$ + "Apostle of Baphomet", 1117, 1, .@label$);
+			callfunc("F_Sealed_Monster_Summon", .@map$, 0, 0, "" + 'monster_alias$ + "Apostle of Baphomet", 1132, 1, .@label$);
+			callfunc("F_Sealed_Monster_Summon", .@map$, 0, 0, "" + 'monster_alias$ + "Apostle of Baphomet", 1117, 1, .@label$);
+			callfunc("F_Sealed_Monster_Summon", .@map$, 0, 0, "" + 'monster_alias$ + "Apostle of Baphomet", 1132, 1, .@label$);
+			callfunc("F_Sealed_Monster_Summon", .@map$, 0, 0, "" + 'monster_alias$ + "Apostle of Baphomet", 1291, 1, .@label$);
+			callfunc("F_Sealed_Monster_Summon", .@map$, 0, 0, "" + 'monster_alias$ + "Apostle of Baphomet", 1117, 1, .@label$);
+			callfunc("F_Sealed_Monster_Summon", .@map$, 0, 0, "" + 'monster_alias$ + "Apostle of Baphomet", 1869, 1, .@label$);			
+			break;	
+		case 2:
+			callfunc("F_Sealed_Monster_Summon", .@map$, 55, 67, "" + 'monster_alias$ + "Apostle of Baphomet", 1869, 1, .@label$);
+			callfunc("F_Sealed_Monster_Summon", .@map$, 51, 67, "" + 'monster_alias$ + "Apostle of Baphomet", 1291, 1, .@label$);
+			callfunc("F_Sealed_Monster_Summon", .@map$, 58, 67, "" + 'monster_alias$ + "Apostle of Baphomet", 1292, 1, .@label$);
+			callfunc("F_Sealed_Monster_Summon", .@map$, 53, 67, "" + 'monster_alias$ + "Apostle of Baphomet", 1291, 1, .@label$);
+			callfunc("F_Sealed_Monster_Summon", .@map$, 54, 67, "" + 'monster_alias$ + "Apostle of Baphomet", 1869, 1, .@label$);
+			callfunc("F_Sealed_Monster_Summon", .@map$, 55, 67, "" + 'monster_alias$ + "Apostle of Baphomet", 1291, 1, .@label$);
+			callfunc("F_Sealed_Monster_Summon", .@map$, 56, 67, "" + 'monster_alias$ + "Apostle of Baphomet", 1117, 1, .@label$);
+			callfunc("F_Sealed_Monster_Summon", .@map$, 58, 66, "" + 'monster_alias$ + "Apostle of Baphomet", 1869, 1, .@label$);
+			callfunc("F_Sealed_Monster_Summon", .@map$, 56, 66, "" + 'monster_alias$ + "Apostle of Baphomet", 1117, 1, .@label$);
+			callfunc("F_Sealed_Monster_Summon", .@map$, 60, 66, "" + 'monster_alias$ + "Apostle of Baphomet", 1132, 1, .@label$);
+			callfunc("F_Sealed_Monster_Summon", .@map$, 59, 66, "" + 'monster_alias$ + "Apostle of Baphomet", 1117, 1, .@label$);
+			callfunc("F_Sealed_Monster_Summon", .@map$, 54, 66, "" + 'monster_alias$ + "Apostle of Baphomet", 1132, 1, .@label$);
+			callfunc("F_Sealed_Monster_Summon", .@map$, 55, 66, "" + 'monster_alias$ + "Apostle of Baphomet", 1292, 1, .@label$);
+			callfunc("F_Sealed_Monster_Summon", .@map$, 56, 66, "" + 'monster_alias$ + "Apostle of Baphomet", 1132, 1, .@label$);
+			callfunc("F_Sealed_Monster_Summon", .@map$, 50, 65, "" + 'monster_alias$ + "Apostle of Baphomet", 1867, 1, .@label$);
+			callfunc("F_Sealed_Monster_Summon", .@map$, 61, 65, "" + 'monster_alias$ + "Apostle of Baphomet", 1292, 1, .@label$);
+			break;
+		case 3:
+			callfunc("F_Sealed_Monster_Summon", .@map$, 105, 67, "" + 'monster_alias$ + "Apostle of Baphomet", 1869, 1, .@label$);
+			callfunc("F_Sealed_Monster_Summon", .@map$, 104, 67, "" + 'monster_alias$ + "Apostle of Baphomet", 1291, 1, .@label$);
+			callfunc("F_Sealed_Monster_Summon", .@map$, 107, 67, "" + 'monster_alias$ + "Apostle of Baphomet", 1869, 1, .@label$);
+			callfunc("F_Sealed_Monster_Summon", .@map$, 106, 67, "" + 'monster_alias$ + "Apostle of Baphomet", 1291, 1, .@label$);
+			callfunc("F_Sealed_Monster_Summon", .@map$, 102, 67, "" + 'monster_alias$ + "Apostle of Baphomet", 1869, 1, .@label$);
+			callfunc("F_Sealed_Monster_Summon", .@map$, 103, 67, "" + 'monster_alias$ + "Apostle of Baphomet", 1291, 1, .@label$);
+			callfunc("F_Sealed_Monster_Summon", .@map$, 103, 67, "" + 'monster_alias$ + "Apostle of Baphomet", 1117, 1, .@label$);
+			callfunc("F_Sealed_Monster_Summon", .@map$, 109, 66, "" + 'monster_alias$ + "Apostle of Baphomet", 1117, 1, .@label$);
+			callfunc("F_Sealed_Monster_Summon", .@map$, 108, 66, "" + 'monster_alias$ + "Apostle of Baphomet", 1132, 1, .@label$);
+			callfunc("F_Sealed_Monster_Summon", .@map$, 101, 66, "" + 'monster_alias$ + "Apostle of Baphomet", 1117, 1, .@label$);
+			callfunc("F_Sealed_Monster_Summon", .@map$, 106, 66, "" + 'monster_alias$ + "Apostle of Baphomet", 1292, 1, .@label$);
+			callfunc("F_Sealed_Monster_Summon", .@map$, 102, 66, "" + 'monster_alias$ + "Apostle of Baphomet", 1132, 1, .@label$);
+			callfunc("F_Sealed_Monster_Summon", .@map$, 104, 66, "" + 'monster_alias$ + "Apostle of Baphomet", 1292, 1, .@label$);
+			callfunc("F_Sealed_Monster_Summon", .@map$, 103, 66, "" + 'monster_alias$ + "Apostle of Baphomet", 1132, 1, .@label$);
+			callfunc("F_Sealed_Monster_Summon", .@map$, 109, 65, "" + 'monster_alias$ + "Apostle of Baphomet", 1867, 1, .@label$);
+			callfunc("F_Sealed_Monster_Summon", .@map$, 108, 65, "" + 'monster_alias$ + "Apostle of Baphomet", 1292, 1, .@label$);
+			break;
+		case 4:
+			callfunc("F_Sealed_Monster_Summon", .@map$, 78, 41, "" + 'monster_alias$ + "Apostle of Baphomet", 1869, 1, .@label$);
+			callfunc("F_Sealed_Monster_Summon", .@map$, 79, 42, "" + 'monster_alias$ + "Apostle of Baphomet", 1291, 1, .@label$);
+			callfunc("F_Sealed_Monster_Summon", .@map$, 78, 46, "" + 'monster_alias$ + "Apostle of Baphomet", 1869, 1, .@label$);
+			callfunc("F_Sealed_Monster_Summon", .@map$, 81, 41, "" + 'monster_alias$ + "Apostle of Baphomet", 1291, 1, .@label$);
+			callfunc("F_Sealed_Monster_Summon", .@map$, 81, 42, "" + 'monster_alias$ + "Apostle of Baphomet", 1869, 1, .@label$);
+			callfunc("F_Sealed_Monster_Summon", .@map$, 79, 43, "" + 'monster_alias$ + "Apostle of Baphomet", 1291, 1, .@label$);
+			callfunc("F_Sealed_Monster_Summon", .@map$, 77, 40, "" + 'monster_alias$ + "Apostle of Baphomet", 1117, 1, .@label$);
+			callfunc("F_Sealed_Monster_Summon", .@map$, 79, 41, "" + 'monster_alias$ + "Apostle of Baphomet", 1132, 1, .@label$);
+			callfunc("F_Sealed_Monster_Summon", .@map$, 79, 42, "" + 'monster_alias$ + "Apostle of Baphomet", 1117, 1, .@label$);
+			callfunc("F_Sealed_Monster_Summon", .@map$, 79, 43, "" + 'monster_alias$ + "Apostle of Baphomet", 1132, 1, .@label$);
+			callfunc("F_Sealed_Monster_Summon", .@map$, 79, 48, "" + 'monster_alias$ + "Apostle of Baphomet", 1117, 1, .@label$);
+			callfunc("F_Sealed_Monster_Summon", .@map$, 78, 49, "" + 'monster_alias$ + "Apostle of Baphomet", 1132, 1, .@label$);
+			callfunc("F_Sealed_Monster_Summon", .@map$, 78, 41, "" + 'monster_alias$ + "Apostle of Baphomet", 1292, 1, .@label$);
+			callfunc("F_Sealed_Monster_Summon", .@map$, 74, 42, "" + 'monster_alias$ + "Apostle of Baphomet", 1292, 1, .@label$);
+			callfunc("F_Sealed_Monster_Summon", .@map$, 72, 48, "" + 'monster_alias$ + "Apostle of Baphomet", 1867, 1, .@label$);
+			callfunc("F_Sealed_Monster_Summon", .@map$, 72, 38, "" + 'monster_alias$ + "Apostle of Baphomet", 1292, 1, .@label$);
+			break;
+		case 5:
+			callfunc("F_Sealed_Monster_Summon", .@map$, 0, 0, "" + 'monster_alias$ + "Zombie Master", 1298, 10, .@label$);
+			callfunc("F_Sealed_Monster_Summon", .@map$, 0, 0, "" + 'monster_alias$ + "Wraith Dead", 1291, 10, .@label$);
+			callfunc("F_Sealed_Monster_Summon", .@map$, 0, 0, "" + 'monster_alias$ + "Ancient Mimic", 1699, 10, .@label$);
+			callfunc("F_Sealed_Monster_Summon", .@map$, 0, 0, "" + 'monster_alias$ + "Flame Skull", 1869, 10, .@label$);
+			callfunc("F_Sealed_Monster_Summon", .@map$, 0, 0, "" + 'monster_alias$ + "Skeleton General", 1290, 10, .@label$);
+			callfunc("F_Sealed_Monster_Summon", .@map$, 0, 0, "" + 'monster_alias$ + "Zombie Master", 1298, 10, .@label$);
+			callfunc("F_Sealed_Monster_Summon", .@map$, 0, 0, "" + 'monster_alias$ + "Skeleton General", 1290, 10, .@label$);
+			callfunc("F_Sealed_Monster_Summon", .@map$, 0, 0, "" + 'monster_alias$ + "Flame Skull", 1869, 10, .@label$);
+			callfunc("F_Sealed_Monster_Summon", .@map$, 0, 0, "" + 'monster_alias$ + "Wraith Dead", 1291, 10, .@label$);
+			callfunc("F_Sealed_Monster_Summon", .@map$, 0, 0, "" + 'monster_alias$ + "Wraith Dead", 1291, 10, .@label$);
+			callfunc("F_Sealed_Monster_Summon", .@map$, 0, 0, "" + 'monster_alias$ + "Khalitzburg", 1132, 10, .@label$);
+			callfunc("F_Sealed_Monster_Summon", .@map$, 0, 0, "" + 'monster_alias$ + "Khalitzburg", 1132, 10, .@label$);
+			callfunc("F_Sealed_Monster_Summon", .@map$, 0, 0, "" + 'monster_alias$ + "Flame Skull", 1869, 10, .@label$);
+			callfunc("F_Sealed_Monster_Summon", .@map$, 0, 0, "" + 'monster_alias$ + "Flame Skull", 1869, 10, .@label$);
+			callfunc("F_Sealed_Monster_Summon", .@map$, 0, 0, "" + 'monster_alias$ + "Ancient Mimic", 1699, 10, .@label$);
+			callfunc("F_Sealed_Monster_Summon", .@map$, 0, 0, "" + 'monster_alias$ + "Zombie Master", 1298, 10, .@label$);
+			callfunc("F_Sealed_Monster_Summon", .@map$, 0, 0, "" + 'monster_alias$ + "Ancient Mimic", 1699, 10, .@label$);
+			callfunc("F_Sealed_Monster_Summon", .@map$, 0, 0, "" + 'monster_alias$ + "Zombie Master", 1298, 10, .@label$);
+			callfunc("F_Sealed_Monster_Summon", .@map$, 0, 0, "" + 'monster_alias$ + "Wraith Dead", 1291, 10, .@label$);
+			callfunc("F_Sealed_Monster_Summon", .@map$, 0, 0, "" + 'monster_alias$ + "Skeleton General", 1290, 10, .@label$);
+			callfunc("F_Sealed_Monster_Summon", .@map$, 0, 0, "" + 'monster_alias$ + "Skeleton General", 1290, 10, .@label$);
+			callfunc("F_Sealed_Monster_Summon", .@map$, 0, 0, "" + 'monster_alias$ + "Wind Ghost", 1263, 10, .@label$);
+			callfunc("F_Sealed_Monster_Summon", .@map$, 0, 0, "" + 'monster_alias$ + "Wind Ghost", 1263, 10, .@label$);
+			callfunc("F_Sealed_Monster_Summon", .@map$, 0, 0, "" + 'monster_alias$ + "Wind Ghost", 1263, 10, .@label$);
+			callfunc("F_Sealed_Monster_Summon", .@map$, 0, 0, "" + 'monster_alias$ + "Lude", 1509, 10, .@label$);
+			callfunc("F_Sealed_Monster_Summon", .@map$, 0, 0, "" + 'monster_alias$ + "Lude", 1509, 10, .@label$);
+			callfunc("F_Sealed_Monster_Summon", .@map$, 0, 0, "" + 'monster_alias$ + "Evil Druid", 1117, 10, .@label$);
+			callfunc("F_Sealed_Monster_Summon", .@map$, 0, 0, "" + 'monster_alias$ + "Evil Druid", 1117, 10, .@label$);
+			callfunc("F_Sealed_Monster_Summon", .@map$, 0, 0, "" + 'monster_alias$ + "Evil Druid", 1117, 10, .@label$);
+			callfunc("F_Sealed_Monster_Summon", .@map$, 0, 0, "" + 'monster_alias$ + "Banshee", 1867, 10, .@label$);
+			callfunc("F_Sealed_Monster_Summon", .@map$, 0, 0, "" + 'monster_alias$ + "Dark Illusion", 1302, 1, .@label$);
+			break;
+		case 6:
+			callfunc("F_Sealed_Monster_Summon", .@map$, 79, 64, "" + 'monster_alias$ + "Baphomet#", 1929, 1, .@label$);
+			break;
+	}
+	return;
+}
+
+// Sealed Settings
+//============================================================
+function	script	F_Sealed_Settings	{
+
+	setarray $@easy_mode_variables, 0			//bonus_hp_rate
+									, 0			//bonus_dmg_rate
+									, 0			//bonus_damagetaken
+									, 0			//bonus_def
+									, 0			//bonus_mdef
+									, 0			//bonus_hit
+									, 0;		//bonus_flee
+									
+	setarray $@veteran_mode_variables, 50		//bonus_hp_rate
+									, 50		//bonus_dmg_rate
+									, -10		//bonus_damagetaken
+									, 50		//bonus_def
+									, 50		//bonus_mdef
+									, 50		//bonus_hit
+									, 50;		//bonus_flee
+									
+	setarray $@nightmare_mode_variables, 100		//bonus_hp_rate
+									, 100		//bonus_dmg_rate
+									, -20		//bonus_damagetaken
+									, 100		//bonus_def
+									, 100		//bonus_mdef
+									, 100		//bonus_hit
+									, 100;		//bonus_flee
+									
+	setarray $@hell_mode_variables, 150			//bonus_hp_rate
+									, 150		//bonus_dmg_rate
+									, -30		//bonus_damagetaken
+									, 150		//bonus_def
+									, 150		//bonus_mdef
+									, 150		//bonus_hit
+									, 150;		//bonus_flee
+									
+	setarray $@torment_mode_variables, 200		//bonus_hp_rate
+									, 200		//bonus_dmg_rate
+									, -40		//bonus_damagetaken
+									, 200		//bonus_def
+									, 200		//bonus_mdef
+									, 200		//bonus_hit
+									, 200;		//bonus_flee
+									
+	setarray $@bonus_exp[1], 0					//easy_bonus_exp
+						, 50					//veteran_bonus_exp
+						, 100					//nightmare_bonus_exp
+						, 150					//hell_bonus_exp
+						, 200;					//torment_bonus_exp
+
+	setarray $@instance_points[1], 10			//easy mode
+								, 20			//veteran mode
+								, 40			//nightmare mode
+								, 80			//hell mode
+								, 160;			//torment mode
+								
+	setarray $@monster_alias$[1], ""			//monster alias
+								, "Veteran "
+								, "Nightmare "
+								, "Hellish "
+								, "Tormented ";								
+	
+	setarray $@difficulty_mode$[1], "Easy Mode"	//announcement
+								, "Veteran Mode"
+								, "Nightmare Mode"
+								, "Hell Mode"
+								, "Torment Mode";
+								
+	setarray $@var_names$[1], "SEALED_EASY"		//custom cashpoints variable name
+							, "SEALED_VETERAN"
+							, "SEALED_NIGHTMARE"
+							, "SEALED_HELL"
+							, "SEALED_TORMENT";					
+return;
+}
+
+// Settings :
+//	-	Only required to edit the ShopSetting() Function
+//			Notes : You may also add / remove Menu ( If any ) 
+//	-	Shop Currency can be either ItemID or Variable Name, but must write within Quotation Marks ( "" )
+//			Ex. of Variable.	->	Zeny , #CASHPOINTS , #KAFRAPOINTS , CustomVariable , #CustomVariable
+//	-	ERROR Message are used to show Invalid Settings in your NPC.
+
+
+// Leave this alone...
+-	shop	Sealed_Shop	-1,512:100
+
+monk_test,312,149,4	script	[ Sealed Shop ]	1_F_PRIEST,{
+function ShopSettings;
+function ValidateCost;
+function CurrencyInfo;
+function ClearData;
+function ValueConvert;
+function ErrorNotice;
+mes (gettime(3)>= 6&&gettime(3)<= 12?"Good Morning":(gettime(3)>=13&&gettime(3)<=18?"Good afternoon":"Good evening"))+", ^FFA500"+strcharinfo(0)+"^000000 !";
+mes "Each Shop from the menu may purchase using different ^FF0000Sealed Shrine Points^000000.";
+next;
+// Menu Selection
+select("[ Easy Points ] Consumable"
+		,"[ Easy Points ] Equips"
+		,"[ Easy Points ] Etc"
+		,"[ Veteran Points ] Consumable"
+		,"[ Veteran Points ] Equips"
+		,"[ Veteran Points ] Etc"
+		,"[ Nightmare Points ] Consumable"
+		,"[ Nightmare Points ] Equips"
+		,"[ Nightmare Points ] Etc"
+		,"[ Hell Points ] Consumable"
+		,"[ Hell Points ] Equips"
+		,"[ Hell Points ] Etc"
+		,"[ Torment Points ] Consumable"
+		,"[ Torment Points ] Equips"
+		,"[ Torment Points ] Etc");		
+
+ClearData();
+ShopSettings( @menu );
+npcshopitem "Sealed_Shop",512,100;
+npcshopdelitem "Sealed_Shop",512;
+for(set .@i,0; .@i < getarraysize( @ItemLists ); set .@i,.@i+1)
+	npcshopadditem "Sealed_Shop",@ItemLists[.@i],@ItemCost[.@i];
+mes "";	
+CurrencyInfo( @Currency$ );
+mes "";
+callshop "Sealed_Shop",1;
+npcshopattach "Sealed_Shop";
+end;
+
+
+function	ShopSettings	{
+	switch( getarg(0) ){	
+		Case 1:
+			// Currency [ Item ID / Variable Name ]
+			set @Currency$,"#SEALED_EASY";
+			// Item ID Lists
+			setarray @ItemLists[0],12114		// Elemental_Fire
+									,12115		// Elemental_Water
+									,12116		// Elemental_Earth
+									,12117		// Elemental_Wind
+									,100128;	// Noblesse_Rifine_Ticket
+
+			// Item Price
+			setarray @ItemCost[0],1			// Elemental_Fire
+									,1		// Elemental_Water
+									,1		// Elemental_Earth
+									,1		// Elemental_Wind
+									,1;		// Noblesse_Rifine_Ticket
+
+			break;
+		Case 2:
+			// Currency [ Item ID / Variable Name ]
+			set @Currency$,"#SEALED_EASY";
+			// Item ID Lists
+			setarray @ItemLists[0],450026		// Noblesse_Adora_Robe
+									,450023		// Noblesse_Aim_Suit
+									,450033		// Noblesse_Assasin_Suit
+									,450018		// Noblesse_Breath_Armor
+									,450030		// Noblesse_Kart_Suit
+									,450031		// Noblesse_Kart_Suit2
+									,450037		// Noblesse_Carrot_Robe
+									,450040		// Noblesse_Crimson_Robe
+									,450027		// Noblesse_Duple_Robe
+									,450043		// Noblesse_Dust_Robe
+									,450048		// Noblesse_Swhoo_Robe
+									,450049		// Noblesse_Explosion_Robe
+									,450034		// Noblesse_Fatal_Suit
+									,450039		// Noblesse_Firerain_Suit
+									,450041		// Noblesse_Frost_Robe
+									,450021		// Noblesse_Genesis_Armor
+									,450019		// Noblesse_Knight_Armor
+									,450050		// Noblesse_Knuckle_Suit
+									,450047		// Noblesse_Kunai_Suit
+									,450045		// Noblesse_Moon_Suit
+									,450046		// Noblesse_Ninja_Suit
+									,450036		// Noblesse_Picky_Robe
+									,450042		// Noblesse_Psychic_Robe
+									,450025		// Noblesse_Reverb_Suit
+									,450032		// Noblesse_Rolling_Suit
+									,450024		// Noblesse_Severe_Suit
+									,450022		// Noblesse_Sharp_Suit
+									,450020		// Noblesse_Spear_Armor
+									,450035		// Noblesse_Stalker_Suit
+									,450044		// Noblesse_Sun_Suit
+									,450122		// Noblesse_Snovice_Robe
+									,450121		// Noblesse_Snovice_Suit
+									,450051		// Noblesse_Tiger_Suit
+									,450028		// Noblesse_Tonado_Armor
+									,450038		// Noblesse_Trip_Suit
+									,450029		// Noblesse_Vulcan_Armor
+									,470016		// Noblesse_Attack_Boots
+									,480012		// Noblesse_Attack_Manteau
+									,490014		// Noblesse_Attack_Ring
+									,470017		// Noblesse_Magic_Boots
+									,480014		// Noblesse_Magic_Manteau
+									,490015;	// Noblesse_Magic_Ring
+			// Item Price
+			setarray @ItemCost[0],5		// Noblesse_Adora_Robe
+									,5		// Noblesse_Aim_Suit
+									,5		// Noblesse_Assasin_Suit
+									,5		// Noblesse_Breath_Armor
+									,5		// Noblesse_Kart_Suit
+									,5		// Noblesse_Kart_Suit2
+									,5		// Noblesse_Carrot_Robe
+									,5		// Noblesse_Crimson_Robe
+									,5		// Noblesse_Duple_Robe
+									,5		// Noblesse_Dust_Robe
+									,5		// Noblesse_Swhoo_Robe
+									,5		// Noblesse_Explosion_Robe
+									,5		// Noblesse_Fatal_Suit
+									,5		// Noblesse_Firerain_Suit
+									,5		// Noblesse_Frost_Robe
+									,5		// Noblesse_Genesis_Armor
+									,5		// Noblesse_Knight_Armor
+									,5		// Noblesse_Knuckle_Suit
+									,5		// Noblesse_Kunai_Suit
+									,5		// Noblesse_Moon_Suit
+									,5		// Noblesse_Ninja_Suit
+									,5		// Noblesse_Picky_Robe
+									,5		// Noblesse_Psychic_Robe
+									,5		// Noblesse_Reverb_Suit
+									,5		// Noblesse_Rolling_Suit
+									,5		// Noblesse_Severe_Suit
+									,5		// Noblesse_Sharp_Suit
+									,5		// Noblesse_Spear_Armor
+									,5		// Noblesse_Stalker_Suit
+									,5		// Noblesse_Sun_Suit
+									,5		// Noblesse_Snovice_Robe
+									,5		// Noblesse_Snovice_Suit
+									,5		// Noblesse_Tiger_Suit
+									,5		// Noblesse_Tonado_Armor
+									,5		// Noblesse_Trip_Suit
+									,5		// Noblesse_Vulcan_Armor
+									,5		// Noblesse_Attack_Boots
+									,5		// Noblesse_Attack_Manteau
+									,5		// Noblesse_Attack_Ring
+									,5		// Noblesse_Magic_Boots
+									,5		// Noblesse_Magic_Manteau
+									,5;		// Noblesse_Magic_Ring
+			break;
+		Case 3:
+			// Currency [ Item ID / Variable Name ]
+			set @Currency$,"#SEALED_EASY";
+			// Item ID Lists
+			setarray @ItemLists[0],7619			// Enriched_Elunium
+									,7620		// Enriched_Oridecon
+									,1000333	// Enriched_Ethernium
+									,1000334;	// Enriched_Etherdeocon
+
+			// Item Price
+			setarray @ItemCost[0],1			// Enriched_Elunium
+									,1		// Enriched_Oridecon
+									,1		// Enriched_Ethernium
+									,1;		// Enriched_Etherdeocon
+			break;
+		Case 4:
+			// Currency [ Item ID / Variable Name ]
+			set @Currency$,"#SEALED_VETERAN";
+			// Item ID Lists
+			setarray @ItemLists[0],12090		// Agi_Dish10
+									,12095		// Dex_Dish10
+									,12080		// Int_Dish10
+									,12100		// Luk_Dish10
+									,12075		// Str_Dish10
+									,12085;		// Vit_Dish10
+
+			// Item Price
+			setarray @ItemCost[0],5		// Agi_Dish10
+									,5		// Dex_Dish10
+									,5		// Int_Dish10
+									,5		// Luk_Dish10
+									,5		// Str_Dish10
+									,5;		// Vit_Dish10
+			break;
+		Case 5:
+			// Currency [ Item ID / Variable Name ]
+			set @Currency$,"#SEALED_VETERAN";
+			// Item ID Lists
+			setarray @ItemLists[0],100138		// Grace_Convert4
+									,100134		// Grace_Convert2
+									,100137		// Grace_Convert3
+									,100133		// Grace_Convert1
+									,100128;	// Noblesse_Rifine_Ticket
+
+			// Item Price
+			setarray @ItemCost[0],5		// Grace_Convert4
+									,5		// Grace_Convert2
+									,5		// Grace_Convert3
+									,5		// Grace_Convert1
+									,5;	// Noblesse_Rifine_Ticket
+			break;
+		Case 6:
+			// Currency [ Item ID / Variable Name ]
+			set @Currency$,"#SEALED_VETERAN";
+			// Item ID Lists
+			setarray @ItemLists[0],100138		// Grace_Convert4
+									,100134		// Grace_Convert2
+									,100137		// Grace_Convert3
+									,100133		// Grace_Convert1
+									,100128;	// Noblesse_Rifine_Ticket
+
+			// Item Price
+			setarray @ItemCost[0],5			// Grace_Convert4
+									,5		// Grace_Convert2
+									,5		// Grace_Convert3
+									,5		// Grace_Convert1
+									,5;		// Noblesse_Rifine_Ticket
+		Case 7:
+			// Currency [ Item ID / Variable Name ]
+			set @Currency$,"#SEALED_NIGHTMARE";
+			// Item ID Lists
+			setarray @ItemLists[0],12114		// Elemental_Fire
+									,12115		// Elemental_Water
+									,12116		// Elemental_Earth
+									,12117		// Elemental_Wind
+									,100128;	// Noblesse_Rifine_Ticket
+
+			// Item Price
+			setarray @ItemCost[0],1			// Elemental_Fire
+									,1		// Elemental_Water
+									,1		// Elemental_Earth
+									,1		// Elemental_Wind
+									,1;		// Noblesse_Rifine_Ticket
+
+			break;
+		Case 8:
+			// Currency [ Item ID / Variable Name ]
+			set @Currency$,"#SEALED_NIGHTMARE";
+			// Item ID Lists
+			setarray @ItemLists[0],450026		// Noblesse_Adora_Robe
+									,450023		// Noblesse_Aim_Suit
+									,450033		// Noblesse_Assasin_Suit
+									,450018		// Noblesse_Breath_Armor
+									,450030		// Noblesse_Kart_Suit
+									,450031		// Noblesse_Kart_Suit2
+									,450037		// Noblesse_Carrot_Robe
+									,450040		// Noblesse_Crimson_Robe
+									,450027		// Noblesse_Duple_Robe
+									,450043		// Noblesse_Dust_Robe
+									,450048		// Noblesse_Swhoo_Robe
+									,450049		// Noblesse_Explosion_Robe
+									,450034		// Noblesse_Fatal_Suit
+									,450039		// Noblesse_Firerain_Suit
+									,450041		// Noblesse_Frost_Robe
+									,450021		// Noblesse_Genesis_Armor
+									,450019		// Noblesse_Knight_Armor
+									,450050		// Noblesse_Knuckle_Suit
+									,450047		// Noblesse_Kunai_Suit
+									,450045		// Noblesse_Moon_Suit
+									,450046		// Noblesse_Ninja_Suit
+									,450036		// Noblesse_Picky_Robe
+									,450042		// Noblesse_Psychic_Robe
+									,450025		// Noblesse_Reverb_Suit
+									,450032		// Noblesse_Rolling_Suit
+									,450024		// Noblesse_Severe_Suit
+									,450022		// Noblesse_Sharp_Suit
+									,450020		// Noblesse_Spear_Armor
+									,450035		// Noblesse_Stalker_Suit
+									,450044		// Noblesse_Sun_Suit
+									,450122		// Noblesse_Snovice_Robe
+									,450121		// Noblesse_Snovice_Suit
+									,450051		// Noblesse_Tiger_Suit
+									,450028		// Noblesse_Tonado_Armor
+									,450038		// Noblesse_Trip_Suit
+									,450029		// Noblesse_Vulcan_Armor
+									,470016		// Noblesse_Attack_Boots
+									,480012		// Noblesse_Attack_Manteau
+									,490014		// Noblesse_Attack_Ring
+									,470017		// Noblesse_Magic_Boots
+									,480014		// Noblesse_Magic_Manteau
+									,490015;	// Noblesse_Magic_Ring
+			// Item Price
+			setarray @ItemCost[0],5		// Noblesse_Adora_Robe
+									,5		// Noblesse_Aim_Suit
+									,5		// Noblesse_Assasin_Suit
+									,5		// Noblesse_Breath_Armor
+									,5		// Noblesse_Kart_Suit
+									,5		// Noblesse_Kart_Suit2
+									,5		// Noblesse_Carrot_Robe
+									,5		// Noblesse_Crimson_Robe
+									,5		// Noblesse_Duple_Robe
+									,5		// Noblesse_Dust_Robe
+									,5		// Noblesse_Swhoo_Robe
+									,5		// Noblesse_Explosion_Robe
+									,5		// Noblesse_Fatal_Suit
+									,5		// Noblesse_Firerain_Suit
+									,5		// Noblesse_Frost_Robe
+									,5		// Noblesse_Genesis_Armor
+									,5		// Noblesse_Knight_Armor
+									,5		// Noblesse_Knuckle_Suit
+									,5		// Noblesse_Kunai_Suit
+									,5		// Noblesse_Moon_Suit
+									,5		// Noblesse_Ninja_Suit
+									,5		// Noblesse_Picky_Robe
+									,5		// Noblesse_Psychic_Robe
+									,5		// Noblesse_Reverb_Suit
+									,5		// Noblesse_Rolling_Suit
+									,5		// Noblesse_Severe_Suit
+									,5		// Noblesse_Sharp_Suit
+									,5		// Noblesse_Spear_Armor
+									,5		// Noblesse_Stalker_Suit
+									,5		// Noblesse_Sun_Suit
+									,5		// Noblesse_Snovice_Robe
+									,5		// Noblesse_Snovice_Suit
+									,5		// Noblesse_Tiger_Suit
+									,5		// Noblesse_Tonado_Armor
+									,5		// Noblesse_Trip_Suit
+									,5		// Noblesse_Vulcan_Armor
+									,5		// Noblesse_Attack_Boots
+									,5		// Noblesse_Attack_Manteau
+									,5		// Noblesse_Attack_Ring
+									,5		// Noblesse_Magic_Boots
+									,5		// Noblesse_Magic_Manteau
+									,5;		// Noblesse_Magic_Ring
+			break;
+		Case 9:
+			// Currency [ Item ID / Variable Name ]
+			set @Currency$,"#SEALED_NIGHTMARE";
+			// Item ID Lists
+			setarray @ItemLists[0],7619			// Enriched_Elunium
+									,7620		// Enriched_Oridecon
+									,1000333	// Enriched_Ethernium
+									,1000334;	// Enriched_Etherdeocon
+
+			// Item Price
+			setarray @ItemCost[0],1			// Enriched_Elunium
+									,1		// Enriched_Oridecon
+									,1		// Enriched_Ethernium
+									,1;		// Enriched_Etherdeocon
+			break;
+		Case 10:
+			// Currency [ Item ID / Variable Name ]
+			set @Currency$,"#SEALED_HELL";
+			// Item ID Lists
+			setarray @ItemLists[0],12090		// Agi_Dish10
+									,12095		// Dex_Dish10
+									,12080		// Int_Dish10
+									,12100		// Luk_Dish10
+									,12075		// Str_Dish10
+									,12085;		// Vit_Dish10
+
+			// Item Price
+			setarray @ItemCost[0],5		// Agi_Dish10
+									,5		// Dex_Dish10
+									,5		// Int_Dish10
+									,5		// Luk_Dish10
+									,5		// Str_Dish10
+									,5;		// Vit_Dish10
+			break;
+		Case 11:
+			// Currency [ Item ID / Variable Name ]
+			set @Currency$,"#SEALED_HELL";
+			// Item ID Lists
+			setarray @ItemLists[0],450026		// Noblesse_Adora_Robe
+									,450023		// Noblesse_Aim_Suit
+									,450033		// Noblesse_Assasin_Suit
+									,450018		// Noblesse_Breath_Armor
+									,450030		// Noblesse_Kart_Suit
+									,450031		// Noblesse_Kart_Suit2
+									,450037		// Noblesse_Carrot_Robe
+									,450040		// Noblesse_Crimson_Robe
+									,450027		// Noblesse_Duple_Robe
+									,450043		// Noblesse_Dust_Robe
+									,450048		// Noblesse_Swhoo_Robe
+									,450049		// Noblesse_Explosion_Robe
+									,450034		// Noblesse_Fatal_Suit
+									,450039		// Noblesse_Firerain_Suit
+									,450041		// Noblesse_Frost_Robe
+									,450021		// Noblesse_Genesis_Armor
+									,450019		// Noblesse_Knight_Armor
+									,450050		// Noblesse_Knuckle_Suit
+									,450047		// Noblesse_Kunai_Suit
+									,450045		// Noblesse_Moon_Suit
+									,450046		// Noblesse_Ninja_Suit
+									,450036		// Noblesse_Picky_Robe
+									,450042		// Noblesse_Psychic_Robe
+									,450025		// Noblesse_Reverb_Suit
+									,450032		// Noblesse_Rolling_Suit
+									,450024		// Noblesse_Severe_Suit
+									,450022		// Noblesse_Sharp_Suit
+									,450020		// Noblesse_Spear_Armor
+									,450035		// Noblesse_Stalker_Suit
+									,450044		// Noblesse_Sun_Suit
+									,450122		// Noblesse_Snovice_Robe
+									,450121		// Noblesse_Snovice_Suit
+									,450051		// Noblesse_Tiger_Suit
+									,450028		// Noblesse_Tonado_Armor
+									,450038		// Noblesse_Trip_Suit
+									,450029		// Noblesse_Vulcan_Armor
+									,470016		// Noblesse_Attack_Boots
+									,480012		// Noblesse_Attack_Manteau
+									,490014		// Noblesse_Attack_Ring
+									,470017		// Noblesse_Magic_Boots
+									,480014		// Noblesse_Magic_Manteau
+									,490015;	// Noblesse_Magic_Ring
+			// Item Price
+			setarray @ItemCost[0],5		// Noblesse_Adora_Robe
+									,5		// Noblesse_Aim_Suit
+									,5		// Noblesse_Assasin_Suit
+									,5		// Noblesse_Breath_Armor
+									,5		// Noblesse_Kart_Suit
+									,5		// Noblesse_Kart_Suit2
+									,5		// Noblesse_Carrot_Robe
+									,5		// Noblesse_Crimson_Robe
+									,5		// Noblesse_Duple_Robe
+									,5		// Noblesse_Dust_Robe
+									,5		// Noblesse_Swhoo_Robe
+									,5		// Noblesse_Explosion_Robe
+									,5		// Noblesse_Fatal_Suit
+									,5		// Noblesse_Firerain_Suit
+									,5		// Noblesse_Frost_Robe
+									,5		// Noblesse_Genesis_Armor
+									,5		// Noblesse_Knight_Armor
+									,5		// Noblesse_Knuckle_Suit
+									,5		// Noblesse_Kunai_Suit
+									,5		// Noblesse_Moon_Suit
+									,5		// Noblesse_Ninja_Suit
+									,5		// Noblesse_Picky_Robe
+									,5		// Noblesse_Psychic_Robe
+									,5		// Noblesse_Reverb_Suit
+									,5		// Noblesse_Rolling_Suit
+									,5		// Noblesse_Severe_Suit
+									,5		// Noblesse_Sharp_Suit
+									,5		// Noblesse_Spear_Armor
+									,5		// Noblesse_Stalker_Suit
+									,5		// Noblesse_Sun_Suit
+									,5		// Noblesse_Snovice_Robe
+									,5		// Noblesse_Snovice_Suit
+									,5		// Noblesse_Tiger_Suit
+									,5		// Noblesse_Tonado_Armor
+									,5		// Noblesse_Trip_Suit
+									,5		// Noblesse_Vulcan_Armor
+									,5		// Noblesse_Attack_Boots
+									,5		// Noblesse_Attack_Manteau
+									,5		// Noblesse_Attack_Ring
+									,5		// Noblesse_Magic_Boots
+									,5		// Noblesse_Magic_Manteau
+									,5;		// Noblesse_Magic_Ring
+			break;
+		Case 12:
+			// Currency [ Item ID / Variable Name ]
+			set @Currency$,"#SEALED_HELL";
+			// Item ID Lists
+			setarray @ItemLists[0],7619			// Enriched_Elunium
+									,7620		// Enriched_Oridecon
+									,1000333	// Enriched_Ethernium
+									,1000334;	// Enriched_Etherdeocon
+
+			// Item Price
+			setarray @ItemCost[0],1			// Enriched_Elunium
+									,1		// Enriched_Oridecon
+									,1		// Enriched_Ethernium
+									,1;		// Enriched_Etherdeocon
+		Case 13:
+			// Currency [ Item ID / Variable Name ]
+			set @Currency$,"#SEALED_TORMENT";
+			// Item ID Lists
+			setarray @ItemLists[0],12090		// Agi_Dish10
+									,12095		// Dex_Dish10
+									,12080		// Int_Dish10
+									,12100		// Luk_Dish10
+									,12075		// Str_Dish10
+									,12085;		// Vit_Dish10
+
+			// Item Price
+			setarray @ItemCost[0],5		// Agi_Dish10
+									,5		// Dex_Dish10
+									,5		// Int_Dish10
+									,5		// Luk_Dish10
+									,5		// Str_Dish10
+									,5;		// Vit_Dish10
+			break;
+		Case 14:
+			// Currency [ Item ID / Variable Name ]
+			set @Currency$,"#SEALED_TORMENT";
+			// Item ID Lists
+			setarray @ItemLists[0],450026		// Noblesse_Adora_Robe
+									,450023		// Noblesse_Aim_Suit
+									,450033		// Noblesse_Assasin_Suit
+									,450018		// Noblesse_Breath_Armor
+									,450030		// Noblesse_Kart_Suit
+									,450031		// Noblesse_Kart_Suit2
+									,450037		// Noblesse_Carrot_Robe
+									,450040		// Noblesse_Crimson_Robe
+									,450027		// Noblesse_Duple_Robe
+									,450043		// Noblesse_Dust_Robe
+									,450048		// Noblesse_Swhoo_Robe
+									,450049		// Noblesse_Explosion_Robe
+									,450034		// Noblesse_Fatal_Suit
+									,450039		// Noblesse_Firerain_Suit
+									,450041		// Noblesse_Frost_Robe
+									,450021		// Noblesse_Genesis_Armor
+									,450019		// Noblesse_Knight_Armor
+									,450050		// Noblesse_Knuckle_Suit
+									,450047		// Noblesse_Kunai_Suit
+									,450045		// Noblesse_Moon_Suit
+									,450046		// Noblesse_Ninja_Suit
+									,450036		// Noblesse_Picky_Robe
+									,450042		// Noblesse_Psychic_Robe
+									,450025		// Noblesse_Reverb_Suit
+									,450032		// Noblesse_Rolling_Suit
+									,450024		// Noblesse_Severe_Suit
+									,450022		// Noblesse_Sharp_Suit
+									,450020		// Noblesse_Spear_Armor
+									,450035		// Noblesse_Stalker_Suit
+									,450044		// Noblesse_Sun_Suit
+									,450122		// Noblesse_Snovice_Robe
+									,450121		// Noblesse_Snovice_Suit
+									,450051		// Noblesse_Tiger_Suit
+									,450028		// Noblesse_Tonado_Armor
+									,450038		// Noblesse_Trip_Suit
+									,450029		// Noblesse_Vulcan_Armor
+									,470016		// Noblesse_Attack_Boots
+									,480012		// Noblesse_Attack_Manteau
+									,490014		// Noblesse_Attack_Ring
+									,470017		// Noblesse_Magic_Boots
+									,480014		// Noblesse_Magic_Manteau
+									,490015;	// Noblesse_Magic_Ring
+			// Item Price
+			setarray @ItemCost[0],5		// Noblesse_Adora_Robe
+									,5		// Noblesse_Aim_Suit
+									,5		// Noblesse_Assasin_Suit
+									,5		// Noblesse_Breath_Armor
+									,5		// Noblesse_Kart_Suit
+									,5		// Noblesse_Kart_Suit2
+									,5		// Noblesse_Carrot_Robe
+									,5		// Noblesse_Crimson_Robe
+									,5		// Noblesse_Duple_Robe
+									,5		// Noblesse_Dust_Robe
+									,5		// Noblesse_Swhoo_Robe
+									,5		// Noblesse_Explosion_Robe
+									,5		// Noblesse_Fatal_Suit
+									,5		// Noblesse_Firerain_Suit
+									,5		// Noblesse_Frost_Robe
+									,5		// Noblesse_Genesis_Armor
+									,5		// Noblesse_Knight_Armor
+									,5		// Noblesse_Knuckle_Suit
+									,5		// Noblesse_Kunai_Suit
+									,5		// Noblesse_Moon_Suit
+									,5		// Noblesse_Ninja_Suit
+									,5		// Noblesse_Picky_Robe
+									,5		// Noblesse_Psychic_Robe
+									,5		// Noblesse_Reverb_Suit
+									,5		// Noblesse_Rolling_Suit
+									,5		// Noblesse_Severe_Suit
+									,5		// Noblesse_Sharp_Suit
+									,5		// Noblesse_Spear_Armor
+									,5		// Noblesse_Stalker_Suit
+									,5		// Noblesse_Sun_Suit
+									,5		// Noblesse_Snovice_Robe
+									,5		// Noblesse_Snovice_Suit
+									,5		// Noblesse_Tiger_Suit
+									,5		// Noblesse_Tonado_Armor
+									,5		// Noblesse_Trip_Suit
+									,5		// Noblesse_Vulcan_Armor
+									,5		// Noblesse_Attack_Boots
+									,5		// Noblesse_Attack_Manteau
+									,5		// Noblesse_Attack_Ring
+									,5		// Noblesse_Magic_Boots
+									,5		// Noblesse_Magic_Manteau
+									,5;		// Noblesse_Magic_Ring
+			break;
+		Case 15:
+			// Currency [ Item ID / Variable Name ]
+			set @Currency$,"#SEALED_TORMENT";
+			// Item ID Lists
+			setarray @ItemLists[0],7619			// Enriched_Elunium
+									,7620		// Enriched_Oridecon
+									,1000333	// Enriched_Ethernium
+									,1000334;	// Enriched_Etherdeocon
+
+			// Item Price
+			setarray @ItemCost[0],1			// Enriched_Elunium
+									,1		// Enriched_Oridecon
+									,1		// Enriched_Ethernium
+									,1;		// Enriched_Etherdeocon									
+			break;
+		default:
+			ErrorNotice( "Invalid Menu Selection for Menu "+@menu+"." );
+			close;
+	}
+	
+	
+if( @Currency$ == "" )
+	ErrorNotice( "Invalid Currency Setting in Menu "+@menu+" ." );
+if( getarraysize( @ItemCost ) != getarraysize( @ItemLists ) || getarraysize( @ItemLists ) != getarraysize( @ItemCost ) )
+	ErrorNotice( "Missing or Extra Value of Item or Cost Settings in Menu "+@menu+" ." );
+return;
+}
+
+function	ErrorNotice	{
+	mes "^FF0000ERROR^000000 - "+getarg(0);
+	mes "^00FF00____________________________^000000";
+	mes "Inform this Message to ^0000FFGame Staffs^000000 immediately !";
+	close;
+}
+
+function	CurrencyInfo	{
+	if( getitemname( atoi( getarg(0) ) ) != "null" ){
+		mes "Currency : [ ^FF0000"+getitemname( atoi( getarg(0) ) )+"^000000 ]";
+		mes "Available Amount : [ ^0000FF"+ValueConvert( countitem( atoi( getarg(0) ) ) )+"^000000 ]";
+	}else if( getitemname( atoi( getarg(0) ) ) == "null" ){
+		mes "Currency : [ ^FF0000"+getarg(0)+"^000000 ]";
+		mes "Available Amount : [ ^0000FF"+ValueConvert( getd( getarg(0) ) )+"^000000 ]";
+	}
+return;
+}
+
+function	ValidateCost	{
+	if( getitemname( atoi( getarg(0) ) ) != "null" ){
+		if( countitem( atoi( getarg(0) ) ) < getarg(1) ) return 1;
+	}else{
+		if( getd( getarg(0) ) < getarg(1) ) return 1;
+	}
+return 0;
+}
+
+function ClearData	{
+	set @Currency$,"";
+	set @TotalCost,0;
+	deletearray @bought_nameid[0],getarraysize( @bought_nameid );
+	deletearray @bought_quantity[0],getarraysize( @bought_quantity );
+	deletearray @ItemLists[0],getarraysize( @ItemLists );
+	deletearray @ItemCost[0],getarraysize( @ItemCost );
+return;
+}
+
+function	ValueConvert	{
+	set .@num, atoi(""+getarg(0));
+	if ( .@num == 0 || .@num >= 2147483647 ) return getarg(0);
+	set .@l, getstrlen(""+.@num);
+	for ( set .@i,0; .@i < .@l; set .@i, .@i + 1 ) {
+		set .@num$, .@num % pow(10,.@i+1) / pow(10,.@i) + .@num$;
+			if ( (.@i+1) % 3 == 0 && .@i+1 != .@l ) set .@num$, ","+ .@num$;
+	}
+	return .@num$;
+}
+
+OnBuyItem:
+	ShopSettings( @menu );
+	for(set @i,0; @i < getarraysize( @bought_nameid ); set @i,@i+1)
+		for(set @j,0; @j < getarraysize( @ItemLists ); set @j,@j+1)
+			if( @ItemLists[@j] == @bought_nameid[@i] )
+			set @TotalCost,@TotalCost + ( @ItemCost[@j] * @bought_quantity[@i] );
+	mes " ^FF0000BILLING LIST^000000";
+	for( set @i,0; @i < getarraysize( @bought_nameid ); set @i,@i+1 )
+			mes " ^FF0000"+@bought_quantity[@i]+" x ^0000FF"+getitemname( @bought_nameid[@i] )+"^000000";
+
+	if( getitemname( atoi( @Currency$ ) ) != "null" )
+		mes " > Total Cost : ^0000FF"+ValueConvert( @TotalCost )+" x "+getitemname( atoi( @Currency$ ) )+"^000000";
+	else if( getitemname( atoi( @Currency$ ) ) == "null" ){
+		mes " > Total Cost : [ ^0000FF"+ValueConvert( @TotalCost )+ " ] "+@Currency$+"^000000";
+	}
+	
+	if( ValidateCost( @Currency$,@TotalCost ) ){
+		if( getitemname( atoi( @Currency$ ) ) != "null" )
+			mes " > [ ^FF0000X^000000 ] Insufficient ^0000FF"+getitemname( atoi( @Currency$ ) )+"^000000";
+		else{
+			mes " > [ ^FF0000X^000000 ] Insufficient ^0000FF"+@Currency$+"^000000";
+		}
+	}else{
+		if( select( "^0000FFPurchase^000000:Cancel" ) == 1 ){
+			if( getitemname( atoi( @Currency$ ) ) != "null" )
+				delitem atoi( @Currency$ ),@TotalCost;
+			else{
+				set getd( @Currency$ ),getd( @Currency$ ) - @TotalCost;
+			}
+			for(set @i,0; @i < getarraysize( @bought_nameid ); set @i,@i+1)
+				getitem @bought_nameid[@i],@bought_quantity[@i];
+			message strcharinfo(0),"Purchased "+getarraysize( @bought_nameid )+" Items.";
+			mes "Thank you for shopping.";
+		}
+	}
+ClearData();
+close;
+OnInit:
+	setunitdata( getnpcid(0), UNPC_GROUP_ID, 27);
+	setunittitle( getnpcid(0), "Nun Chuck");
+end;
+}

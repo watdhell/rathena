@@ -1,0 +1,27 @@
+prontera,160,183,4	script	Dead Brach Room	859	,{
+
+mes "[Dead Branch Room Warper]";
+mes	"Which dead branch room would you like to be warped to?";
+next;
+
+menu "Room 1 ["+getmapusers("new_1-3")+"]",pvp1,"Room 2 ["+getmapusers("new_2-3")+"]",pvp2,"Room 3 ["+getmapusers("new_3-3")+"]",pvp3,"Room 4 ["+getmapusers("new_4-3")+"]",pvp4,"Room 5 ["+getmapusers("new_5-3")+"]",pvp5;
+pvp1:
+warp "new_1-3",0,0;
+end;
+
+pvp2:
+warp "new_2-3",0,0;
+end;
+
+pvp3:
+warp "new_3-3",0,0;
+end;
+
+pvp4:
+warp "new_4-3",0,0;
+end;
+
+pvp5:
+warp "new_5-3",0,0;
+end;
+}
