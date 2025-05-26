@@ -3283,3 +3283,24 @@ OnInit:
 	setunitdata( getnpcid(0), UNPC_GROUP_ID,27 );
 end;
 }
+
+
+//ET commands
+-	script	ShowEndlessTowerPoints	-1,{
+OnAtcommand:
+	.@size = getarraysize($@difficulty_mode$);
+	if (!.@size) {
+		dispbottom "Please talk to the Tower Protection Stone first.";
+		end;
+	}
+	dispbottom "====================";
+	dispbottom "ENDLESS TOWER POINTS";
+	for (.@i = 1; .@i < .@size; .@i++)
+		dispbottom $@difficulty_mode$[.@i] + ": " + getd("#" + $@var_names$[.@i]);
+	dispbottom "====================";
+	end;
+
+OnInit:
+	bindatcmd "ETpoints",strnpcinfo(3)+"::OnAtcommand";
+	end;
+}
