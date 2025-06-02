@@ -367,8 +367,7 @@ struct skill_timerskill {
 };
 
 /// Skill unit
-struct skill_unit {
-	struct block_list bl;
+struct skill_unit : public block_list {
 	std::shared_ptr<s_skill_unit_group> group; /// Skill group reference
 	t_tick limit;
 	int32 val1, val2;
@@ -408,7 +407,7 @@ struct s_skill_unit_group {
 
 	~s_skill_unit_group() {
 		if (this->unit)
-			map_freeblock(&this->unit->bl); // schedules deallocation of whole array (HACK)
+			map_freeblock(this->unit); // schedules deallocation of whole array (HACK)
 	}
 };
 
