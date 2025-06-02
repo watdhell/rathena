@@ -2055,7 +2055,7 @@ bool k_tick_check(class map_session_data *sd, t_tick k_tick_t, int k_tick_c, int
 	char msg[200];
 	int m_castle = 0;
 
-	if (map_getmapflag(sd->bl.m, MF_GVG_CASTLE) || map_getmapflag(sd->bl.m, MF_GVG_TE_CASTLE)){
+	if (map_getmapflag(sd->m, MF_GVG_CASTLE) || map_getmapflag(sd->m, MF_GVG_TE_CASTLE)){
 		m_castle = 1;
 		sd->kdelay = kdelay_w;
 	}
@@ -2065,7 +2065,7 @@ bool k_tick_check(class map_session_data *sd, t_tick k_tick_t, int k_tick_c, int
 	if (DIFF_TICK(k_tick_t, gettick()) > 0) {
 		if (battle_config.KEITENAI_SHOW_DELAY) {
 			sprintf(msg,"[%I64i] second(s) skill use delay", (k_tick_t - gettick()) / 1000);
-			clif_messagecolor(&sd->bl, color_table[COLOR_RED], msg, false, SELF);
+			clif_messagecolor(sd, color_table[COLOR_RED], msg, false, SELF);
 		}
 		if ((m_castle && (k_tick_c > (kdelay_w / Acceptable_Packet))) || k_tick_c > (kdelay_n / Acceptable_Packet))
 			clif_authfail_fd(sd->fd, 9); // Disconnect Player
@@ -2569,7 +2569,7 @@ int32 unit_skilluse_id2(struct block_list *src, int32 target_id, uint16 skill_id
 
 		if( sd && (pc_checkskill(sd,SA_FREECAST) > 0 || skill_id == LG_EXEEDBREAK) )
 
-			status_calc_bl(&sd->bl, { SCB_SPEED, SCB_ASPD });
+			status_calc_bl(sd, { SCB_SPEED, SCB_ASPD });
 	} else {
  
 		/** [keitenai] Speed Hack Protection **/
@@ -3221,10 +3221,8 @@ int32 unit_skilluse_id2(struct block_list *src, int32 target_id, uint16 skill_id
 			}
 		}
 
-			status_calc_bl(sd, { SCB_SPEED, SCB_ASPD });
-	} else
 		skill_castend_id(ud->skilltimer,tick,src->id,0);
-
+	}
 
 	if( sd && battle_config.prevent_logout_trigger&PLT_SKILL )
 		sd->canlog_tick = gettick();

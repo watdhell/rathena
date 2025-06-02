@@ -4192,7 +4192,7 @@ int32 status_calc_pc_sub(map_session_data* sd, uint8 opt)
 			if (spirit != nullptr){
 				std::shared_ptr<mods::soul_link_data> sld = mods::soul_link_db.find(spirit->val2);
 				if(sld != nullptr && sld->script != nullptr)
-					run_script(sld->script, 0, sd->bl.id, 0);
+					run_script(sld->script, 0, sd->id, 0);
 			}
 	}
 	if (!sc->empty()){
