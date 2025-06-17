@@ -1430,6 +1430,12 @@ enum sc_type : int16 {
 	SC_C_BUFF_4,
 	SC_C_BUFF_5,
 	SC_C_BUFF_6,
+	SC_CONTENTS_15,
+	SC_CONTENTS_16,
+	SC_CONTENTS_17,
+	SC_CONTENTS_18,
+	SC_CONTENTS_19,
+	SC_CONTENTS_20,
 
 	SC_MAX, //Automatically updated max, used in for's to check we are within bounds.
 };
@@ -2965,7 +2971,7 @@ enum e_sc_opt2 : uint16 {
 	OPT2_POISON		= 0x0001,
 	OPT2_CURSE		= 0x0002,
 	OPT2_SILENCE		= 0x0004,
-	OPT2_SIGNUMCRUCIS	= 0x0008, //Confusion
+	OPT2_CONFUSION		= 0x0008,
 	OPT2_BLIND		= 0x0010,
 	OPT2_ANGELUS		= 0x0020,
 	OPT2_BLEEDING		= 0x0040,
