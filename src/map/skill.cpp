@@ -45,6 +45,7 @@
 #include "script.hpp"
 #include "status.hpp"
 #include "unit.hpp"
+#include "./skills/skill_factory.hpp"
 
 using namespace rathena;
 
@@ -1336,6 +1337,11 @@ int32 skill_additional_effect( struct block_list* src, struct block_list *bl, ui
 	if( dmg_lv < ATK_DEF ) // no damage, return;
 		return 0;
 
+	std::shared_ptr<s_skill_db> skill = skill_db.find(skill_id);
+	if (skill != nullptr && skill->impl != nullptr) {
+		skill->impl->applyAdditionalEffects(src, bl, skill_lv, tick, attack_type, dmg_lv);
+	}
+
 	switch(skill_id) {
 		case 0:
 			{ // Normal attacks (no skill used)
@@ -1400,14 +1406,6 @@ int32 skill_additional_effect( struct block_list* src, struct block_list *bl, ui
 				}
 			}
 			break;
-
-	case SM_BASH:
-		if( sd && skill_lv > 5 && pc_checkskill(sd,SM_FATALBLOW)>0 ){
-			//BaseChance gets multiplied with BaseLevel/50.0; 500/50 simplifies to 10 [Playtester]
-			status_change_start(src,bl,SC_STUN,(skill_lv-5)*sd->status.base_level*10,
-				skill_lv,0,0,0,skill_get_time2(skill_id,skill_lv),SCSTART_NONE);
-		}
-		break;
 
 	case MER_CRASH:
 		sc_start(src,bl,SC_STUN,(6*skill_lv),skill_lv,skill_get_time2(skill_id,skill_lv));
@@ -5251,8 +5249,6 @@ int32 skill_castend_damage_id (struct block_list* src, struct block_list *bl, ui
 
 	switch(skill_id) {
 	case MER_CRASH:
-	case SM_BASH:
-	case MS_BASH:
 	case MC_MAMMONITE:
 	case TF_DOUBLE:
 	case AC_DOUBLE:
@@ -7500,6 +7496,11 @@ int32 skill_castend_damage_id (struct block_list* src, struct block_list *bl, ui
 		break;
 
 	default:
+		if (std::shared_ptr<s_skill_db> skill = skill_db.find(skill_id); skill != nullptr && skill->impl != nullptr) {
+			skill->impl->castendDamageId(src, bl, skill_lv, tick, flag);
+			break;
+		}
+
 		ShowWarning("skill_castend_damage_id: Unknown skill used:%d\n",skill_id);
 		clif_skill_damage( *src, *bl, tick, status_get_amotion(src), tstatus->dmotion,
 			0, abs(skill_get_num(skill_id, skill_lv)),
@@ -13711,6 +13712,12 @@ int32 skill_castend_nodamage_id (struct block_list *src, struct block_list *bl, 
 
 	default: {
 		std::shared_ptr<s_skill_db> skill = skill_db.find(skill_id);
+
+		if( skill != nullptr && skill->impl != nullptr ){
+			skill->impl->castendNoDamageId( src, bl, skill_lv, tick, flag );
+			break;
+		}
+
 		ShowWarning("skill_castend_nodamage_id: missing code case for skill %s(%d)\n", skill ? skill->name : "UNKNOWN", skill_id);
 		clif_skill_nodamage(src,*bl,skill_id,skill_lv);
 		map_freeblock_unlock();
@@ -18606,7 +18613,7 @@ bool skill_check_condition_castbegin( map_session_data& sd, uint16 skill_id, uin
 
 	// perform skill-group checks
 	if(skill_id != WM_GREAT_ECHO && inf2[INF2_ISCHORUS]) {
-		if (skill_check_pc_partner(&sd, skill_id, &skill_lv, AREA_SIZE, 0) < 1) {
+		if (skill_check_pc_partner(&sd, skill_id, &skill_lv, AREA_SIZE, 0) < 1 && !(sc != nullptr && sc->hasSCE(SC_KVASIR_SONATA))) {
 			clif_skill_fail( sd, skill_id );
 			return false;
 		}
@@ -26041,6 +26048,14 @@ void SkillDatabase::loadingFinished(){
 	}
 
 	TypesafeCachedYamlDatabase::loadingFinished();
+
+	for( auto& it : *this ){
+		std::unique_ptr<const SkillImpl> impl = SkillFactoryImpl::getInstance()->create( static_cast<e_skill>( it.first ) );
+
+		if( impl != nullptr ){
+			it.second->impl = std::move( impl );
+		}
+	}
 }
 
 /**
