@@ -12,7 +12,7 @@
 #include <custom/defines_pre.hpp>
 
 /// Max number of items on @autolootid list
-#define AUTOLOOTITEM_SIZE 10
+#define AUTOLOOTITEM_SIZE 50
 
 /// The maximum number of atcommand and @warp suggestions
 #define MAX_SUGGESTIONS 10
@@ -49,7 +49,7 @@
 #define HP_SP_TABLES
 
 /// Uncomment to enable VIP system.
-//#define VIP_ENABLE
+#define VIP_ENABLE
 
 /// Enable VIP script changes? (requires VIP_ENABLE)
 /// The primary effects of this are restrictions on non-VIP players, such as requiring
